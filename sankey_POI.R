@@ -1,6 +1,7 @@
 df<-read.csv("POI_n104_raw.csv",stringsAsFactors=FALSE,check.names=FALSE)
 names(df)<-gsub("\n"," ",names(df))
-df<-df[!is.na(df$`first author (year)`),]
+df<-df[trimws(df$`first author (year)`)!=""&!is.na(df$`first author (year)`),]
+stopifnot(nrow(df)==104)
 df$NMVr_1L<-ifelse(tolower(df$`1st line standard or prolonged NMV-r treatment  [yes / no] ?`)=="yes",1,0)
 df$OtherAV_1L<-ifelse(tolower(df$`1st line treatment any other antiviral drugs  (days) and [dosage]`)!="none"|tolower(df$`2nd line any other concomitant antiviral therapy (days) / [dosages]`)!="none",1,0)
 df$path<-paste0(ifelse(df$NMVr_1L==1,"Yes","No"),"/",ifelse(df$OtherAV_1L==1,"Yes","No"))
@@ -9,7 +10,7 @@ tab<-as.data.frame(table(df$path))
 stopifnot(sum(tab$Freq)==104)
 tab$pct<-round(tab$Freq/104*100)
 tab$axis1<-rep(c("NMV-r 1st Line: Yes","NMV-r 1st Line: No"),2)
-tab$axis2<-rep(c("Other AV 1st Line: Yes","Other AV 1st Line: No"),each=2)
+tab$axis2<-rep(c("Other AV 1st Line: Yes","Other AV 1st Line: No"),2)
 tab$fill<-tab$Var1
 tab$label<-paste0("n = ",tab$Freq," (",tab$pct,"%)")
 library(ggsankeyfier)
@@ -20,3 +21,4 @@ p<-ggplot(sank,aes(x=stage,y=Freq,group=node,connector=connector,edge_id=edge_id
 print(p)
 # ggsave("figure_POI_Sankey_test.png",p,dpi=300,width=16,units="cm")
 # ggsave("figure_POI_Sankey_test.pdf",p,dpi=300,width=16,units="cm")
+cat("Panel A Sankey fertig - n = 104\n")
