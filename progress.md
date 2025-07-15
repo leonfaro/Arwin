@@ -11,3 +11,4 @@
 - Updated sankey_POI.R to read POI_n104_raw.csv and plot with ggsankeyfier. Added labels via geom_text and kept ggsave lines commented.
 - Refined sankey_POI.R data filtering and validation to ensure 104 rows after removing blanks.
 - Corrected axis assignment for edge table and added console success message.
+- Revised sankey_POI.R: robust flag logic and dynamic axis labels.
