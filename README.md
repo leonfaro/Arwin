@@ -110,7 +110,7 @@ Compute   %  = n / 104   (Panel A)  |   29 (Panel B)
 
 ### 5.4  Plotten
 
-1. **Tool**: R (ggplot2).
+1. **Tool**: base R with ggplot2 and ggsankey.
 
 ---
 
