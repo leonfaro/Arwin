@@ -1,0 +1,56 @@
+df <- read.csv("POI_n_104.csv", skip = 3, stringsAsFactors = FALSE)
+df <- df[!is.na(df$`first author (year)`), ]
+df$NMVr_1L <- ifelse(
+  tolower(df$`any previous NMV-r treatment …`) == "yes",
+  1,
+  0
+)
+df$OtherAV_1L <- ifelse(
+  tolower(df$`previous antiviral drugs (days) / [dosage]`) != "none" |
+    tolower(df$`concomitant antiviral therapy (days) / [dosages]`) != "none",
+  1,
+  0
+)
+df$path <- paste0(
+  ifelse(df$NMVr_1L == 1, "Yes", "No"),
+  "/",
+  ifelse(df$OtherAV_1L == 1, "Yes", "No")
+)
+df$path <- factor(df$path, levels = c("Yes/Yes", "Yes/No", "No/Yes", "No/No"))
+tab <- as.data.frame(table(df$path))
+stopifnot(sum(tab$Freq) == 104)
+tab$pct <- round(tab$Freq / 104 * 100)
+library(ggsankeyfier)
+sank <- ggsankey(
+  tab,
+  axis1 = rep(c("NMV-r 1st Line: Yes", "NMV-r 1st Line: No"), 2),
+  axis2 = rep(c("Other AV 1st Line: Yes", "Other AV 1st Line: No"), each = 2),
+  fill = tab$path,
+  weight = tab$Freq,
+  label = paste0("n = ", tab$Freq, " (", tab$pct, "%)")
+)
+library(ggplot2)
+p <- ggplot(sank) +
+  geom_sankey(
+    aes(
+      x = x,
+      next_x = next_x,
+      node = node,
+      next_node = next_node,
+      fill = fill,
+      label = label,
+      flow = weight
+    ),
+    show.legend = FALSE,
+    alpha = .8
+  ) +
+  geom_sankey_label(size = 3, color = "black", fill = "white") +
+  scale_fill_manual(values = c("#E69F00", "#56B4E9", "#009E73", "#999999")) +
+  theme_minimal() +
+  theme(
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    panel.grid = element_blank()
+  )
+print(p)
+# ggsave("figure_POI_Sankey_test.png", p, dpi = 300, width = 16, units = "cm")
