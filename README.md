@@ -1,142 +1,165 @@
-### **Projekt‑ und Datenbeschreibung (Langfassung, vollständig replizierbar)**
+### **Projekt‑ und Datenbeschreibung**
+
+
+## 1  |  Klinischer Kontext, Auftrag & Zielsetzung
+
+| Punkt                                 | Inhalt                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Auftraggeber**                      |                                                                                                                                                                                                                                                                                                                          |
+| **Hauptproblem**                      | Immunsupprimierte Patient\*innen (= oncology, transplant, autoimmune under B/T‑cell depletion) können **prolonged / persistent SARS‑CoV‑2 infections** (POI) entwickeln, deren Standardtherapie (5 Tage Nirmatrelvir + Ritonavir, NMV‑r) häufig nicht genügt.                                                                                                                                    |
+| **Population of Interest (POI)**      | 104 Einzelfälle aus der Literatur, die **alle** bereits eine **verlängerte** NMV‑r‑Therapie (≥ 10 Tage oder ≥ 2 Kurse) als Zweit‑ oder Spätlinie erhalten haben.                                                                                                                                                                                                                                 |
+| **Zentrale Analysefragen**            | 1) **Welche Erstlinientherapie** erhielten diese Patient*innen vor der Verlängerung?<br>2) **Wie häufig** kamen die vier Grundpfade (NMV‑r Yes/No × Other Antiviral Yes/No) in … <br>  • der Gesamtkohorte POI (n = 104) und <br>  • der Subkohorte **sPOI mono** (n = 29) = Patient*innen, die in der Zweitlinie *ausschließlich* verlängertes NMV‑r (ohne Kombinationspartner) erhielten, vor? |
+| **Deliverable (Meeting 15 Jul 2025)** | **Genau eine Test‑Grafik** – ein Sankey/Snake‑Diagramm, das die Erstlinienpfade für POI 104 und sPOI‑mono 29 zeigt. **Keine** weiteren Tabellen, Analysen oder Zeitachsen, bis die Grafik intern abgenommen ist.                                                                                                                                                                                 |
+| **Frist**                             | PNG + PDF bis **Montag­abend** (erstes Review).                                                                                                                                                                                                                                                                                                                                                  |
 
 ---
 
-#### 1  |  Ausgangssituation & Ziel
+## 2  |  Datei **data characteristics v3.xlsx** – Vollständige Struktur
 
-* **Auftraggeber**: Aresh (Mail an Kia).
-* **Fragestellung**: Für eine Individual‑Patient‑Data‑(IPD‑)Analyse zu **lang andauernden bzw. rezidivierenden SARS‑CoV‑2‑Infektionen** unter *nirmatrelvir + ritonavir* (NMV‑r) sollen **anschauliche, publikationsreife Grafiken** („schöne, verständliche Bildli“) erstellt werden.
-* **Schwerpunkt‑Visualisierung**: Ein **Snake‑Diagramm / Sankey‑Flow**, das den **Prozess‑ bzw. Subgruppen‑Überlapp** zwischen
+### 2.1  |  Worksheet‑Übersicht
 
-  1. NMV‑r‑Erstlinientherapie (Ja / Nein) und
-  2. zusätzlicher Einsatz **anderer antiviraler Medikamente** (Ja / Nein)
-     im Gesamtkollektiv (**POI, n = 104**) und in der **Subpopulation sPOI mono (n = 29)** abbildet.
-* **Komplexitätsniveau**: Keine ausgefallenen Statistik‑Plots, sondern klar strukturierte, visuell selbsterklärende Abbildungen im Stil des mitgelieferten Screenshots (Figure 3).
+| Sheet‑Name *(original)* | Kurzlabel     | Patientenzeilen        | Einsatz im aktuellen Arbeitsauftrag                                            |
+| ----------------------- | ------------- | ---------------------- | ------------------------------------------------------------------------------ |
+| `Included studies`      | *Included*    | 0 (reine Meta‑Tabelle) | **Ignorieren** (Literatur­verzeichnis)                                         |
+| `POI, n=104`            | **POI**       | **104**                | **Haupt­eingabe für Grafik**                                                   |
+| `sPOI mono, n=29`       | **sPOI‑mono** | **29**                 | **zweites Teil‑Panel**                                                         |
+| `sPOI combo, n=56`      | *sPOI‑combo*  | 56                     | **vorerst ignorieren** (wird evtl. später für Mono‑vs‑Combo‑Analysen benötigt) |
 
----
+*Alle weiteren Blätter oder Hidden‑Sheets wurden am 15 Jul 2025 überprüft – keine relevanten Daten jenseits dieser vier Sheets.*
 
-#### 2  |  Excel‑Datei **data characteristics v3.xlsx** – Struktur
+### 2.2  |  Wichtigste Metadaten‑Fakten aus dem Meeting
 
-| Ordner    | Datei                            | Relevanz         | Inhalt in Kurzform                  |
-| --------- | -------------------------------- | ---------------- | ----------------------------------- |
-| /mnt/data | **data characteristics v3.xlsx** | Arbeitsgrundlage | 4 Worksheets (Sheets) – siehe unten |
-
-##### 2.1  |  Worksheet‑Übersicht
-
-| Sheet‑Name (Original) | Kurzbezeichnung | Zeilenzahl (roh) | Patientenzeilen (≙ nicht‑leere Spalte *first author*) | Zweck im Projekt                                                |
-| --------------------- | --------------- | ---------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
-| `' Included studies'` | **Included**    | …                | 0                                                     | Literatur‑/Studien­übersicht – **vorerst ignorieren**           |
-| `'POI, n=104'`        | **POI**         | 160              | **104**                                               | **Hauptkohorte** aller Patienten mit ≥1 NMV‑r‑Behandlung        |
-| `'sPOI mono, n=29'`   | **sPOI mono**   | 31               | **29**                                                | Unterkohorte mit **monotherapeutischem** NMV‑r‑Einsatz          |
-| `'sPOI combo, n=56'`  | **sPOI combo**  | 58               | 56                                                    | Unterkohorte mit **Kombinationstherapien** – aktuell ignorieren |
-
-> **Hinweis**: Zeilen > Patientenzahl enthalten Leerzeilen oder Zwischenüberschriften und müssen bei der Auswertung gefiltert werden (z. B. `df[df['first author\n(year)'].notna()]`).
-
-##### 2.2  |  Spaltenlayout der Patientensheets (POI / sPOI)
-
-Die Spalten sind in **28 (POI)** bzw. **25 (sPOI mono)** Felder gegliedert. Bis auf zwei führende Leer‑Spalten (`Unnamed: 0/1`) sind alle Variablen in **Row 3 (0‑basiert: index 2)** sauber benannt.
-
-| Index | Spaltenname (Original)                             | Datentyp       | Beschreibung / Kodierung                               |
-| ----- | -------------------------------------------------- | -------------- | ------------------------------------------------------ |
-| 2     | `first author\n(year)`                             | string         | Literaturquelle des Fallberichts                       |
-| 3     | `patients with extended NMV-r [n]`                 | int/float      | Anzahl Pat. pro Studie mit verlängerter NMV‑r‑Therapie |
-| 4     | `Baseline disease cohort …`                        | string (a/m/t) | **a**utoimmun / **m**alignancy / **t**ransplant        |
-| 5     | `study specific case/patient ID number`            | string/int     | Fall‑ID innerhalb der Publikation                      |
-| 6     | `sex [male, female]`                               | string (m/f)   | Geschlecht                                             |
-| 7     | `age`                                              | int            | Alter in Jahren                                        |
-| 8     | `baseline disease`                                 | string         | Grunderkrankung (Freitext)                             |
-| 9     | `baseline therapy`                                 | string         | Immunsuppressiva, Chemotherapie etc.                   |
-| 10    | `vaccination [yes / no] (doses) ?`                 | string         | “y (3)” = geimpft, 3 Dosen                             |
-| 11    | `hospitalization [yes / no] ?`                     | string         | Stationäre Aufnahme ja/nein                            |
-| 12    | `SARS-CoV-2 genotype`                              | string         | Pango‑Lineage, z. B. BA.5                              |
-| 13    | `CT lung changes [yes / no] ?`                     | string         | COVID‑typische CT‑Befunde ja/nein                      |
-| 14    | `SARS-CoV-2 replication [days]`                    | int            | Dauer positiver PCR                                    |
-| 15    | `previous antiviral drugs (days) / [dosage]`       | string         | z. B. “RDV 5 d”                                        |
-| 16    | `any glucocorticosteroid usage …`                  | string         | Steroidgabe ja/nein                                    |
-| 17    | `any previous NMV-r treatment …`                   | string         | Frühere NMV‑r‑Zyklen                                   |
-| 18    | `form of therapy [mono / combination]`             | string         | **mono** vs. **combination**                           |
-| 19    | `standard duration NMV-r treatment courses [n]`    | int            | Anzahl regulärer 5‑Tage‑Zyklen                         |
-| 20    | `total days of extended NMV-r treatment [courses]` | int            | Gesamtdauer aller Verlängerungen                       |
-| 21    | `concomitant antiviral therapy (days) / [dosages]` | string         | Mitbehandlung (RDV, ENS, etc.)                         |
-| 22    | `any adverse events [yes / no] ?`                  | string         | Unerwünschte Ereignisse                                |
-| 23    | `type of adverse event`                            | string         | z. B. „GI toxicity”                                    |
-| 24    | `eradication outcome successful …`                 | string         | Viruselimination ja/nein                               |
-| 25    | `survival outcome [yes / no] ?`                    | string         | Überlebt ja/nein                                       |
-| 26    | `eradication/treatment response …`                 | string         | **c**linical / **v**irological / **r**adiological      |
-| 27    | `comments`                                         | string         | Freitext                                               |
-
-*(POI enthält 28, sPOI mono 25 Spalten; in sPOI fehlen die beiden Zähl‑Spalten \[Index 3 und 19] und evtl. Leer‑Spalten.)*
+* **Spalten­header** entsprechen weiterhin den **Langtiteln** der Erstversion; **keine** internen Kürzel wie `nmv1_yes` existieren.
+* **Zeilenaufbau**: Die ersten 2–3 Zeilen enthalten Überschriften / Erläuterungen; **ab Zeile 4** beginnt die Datentabelle.
+* **Leere Zwischenzeilen**: Teilweise zur visuellen Trennung der Studienberichte – **müssen** beim Import gefiltert werden (`first author` ≠ NA).
+* **Keine Spalten­umbenennungen** wurden seit Meeting vorgenommen; dies bleibt Aufgabe der Datenaufbereitung im Skript.
 
 ---
 
-#### 3  |  Benötigte Grafiken
+## 3  |  Datendictionary (extrahiert aus POI‑Sheet, gilt analog für sPOI‑mono / combo)
 
-| # | Visualisierung                                | Datengrundlage        | Zweck                                                                                                                                                              |
-| - | --------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1 | **Sankey / Snake‑Diagramm** (analog Figure 3) | **POI 104 Pat.**      | Vier Flanken: *linke Seite* = „Any NMV‑r (yes/no)“; *rechte Seite* = „Other antiviral drugs (yes/no)“. Breitenproportionaler Fluss zeigt Frequenzen & Überlappung. |
-| 2 | **Sankey / Snake‑Diagramm**                   | **sPOI mono 29 Pat.** | Gleiches Layout, aber Beschränkung auf Monotherapie‑Fälle (form of therapy = mono).                                                                                |
-| 3 | (Optional) **Vergleichsdiagramm**             | POI vs. sPOI mono     | Balken‑ oder gestapelte Säulen, um prozentuale Verteilung der 4 Kombinationen hervorzuheben.                                                                       |
+|    Nr. | Original‑Spaltenname *(Zeile 3 der XLSX)*          | Typ               | Relevanz für **Sankey**   | Kommentar                                   |
+| -----: | -------------------------------------------------- | ----------------- | ------------------------- | ------------------------------------------- |
+|     01 | `first author\n(year)`                             | string            | nein                      | Literaturquelle, zugleich *Not‑NULL‑Filter* |
+|     …  | *(Demografie‑ & Basis‑Variablen, #02–#14)*         | siehe alte README | nein                      | für später                                  |
+|     15 | `previous antiviral drugs (days) / [dosage]`       | string            | **ja ("Other AV")**       | ‎`≠ "none"` → Yes                           |
+|     16 | `any glucocorticosteroid usage …`                  | string            | nein                      | Meeting: *Glukokortikoide ignorieren*       |
+|     17 | `any previous NMV-r treatment …`                   | string            | **ja ("NMV‑r 1st line")** | Werte `yes` / `no`                          |
+|     18 | `form of therapy [mono / combination]`             | string            | nein (für *Testgrafik*)   | 2nd Line‑Klassifikation                     |
+|     19 | `standard duration NMV-r treatment courses [n]`    | int               | potentiell                | Markierung der 1st‑Line‑Intensität          |
+|     20 | `total days of extended NMV-r treatment [courses]` | int               | nein                      | gehört zur Zweit‑/Spätlinie                 |
+|     21 | `concomitant antiviral therapy (days) / [dosages]` | string            | **ja ("Other AV")**       | zusätzl. Flag für „Other AV“                |
+|  22–27 | *Outcomes & Comments*                              | string/int        | nein                      | für spätere Analysen                        |
 
-**Darstellungs‑Specs (einheitlich für alle Plots)**
-
-* **Format**: PNG (300 dpi) **und** PDF (Vektor)
-* **Farben**: Farbblind‑freundliche Palette, Links/Rechts klar unterscheidbar, Flows in Grau‑Stufen ► Fokus auf Kategorien, nicht auf Farbe.
-* **Beschriftung**: Achsenfrei; Legende mit absoluter Zahl **+ Prozent**; Titel im Stil: “First‑line treatment strategies with NMV‑r and other antivirals – POI (n = 104)”.
-* **Code‑Reproduzierbarkeit**: Datencleaning‑Schritte (Filter, Typ‑Konvertierung) klar in einem Skript dokumentieren.
-
----
-
-#### 4  |  Workflow (Schritt‑für‑Schritt, replizierbar)
-
-1. **Import & Cleaning**
-
-   * `read_excel(..., header=2)` für POI und `header=1` für sPOI mono.
-   * Entfernen der Leer‑Spalten `Unnamed: 0/1`.
-   * Zeilenfilter: nur Datensätze mit nicht‑leerem `first author\n(year)`.
-   * Normalisierung der Ja/Nein‑Angaben (`y|yes` → `Yes`, `n|no|NaN` → `No`).
-
-2. **Variable derivation**
-
-   * `NMVr_firstline` = **Yes**, wenn `any previous NMV-r treatment` == `No` **und** `form of therapy` enthält NMV‑r.
-   * `Other_AV` = **Yes**, wenn `concomitant antiviral therapy…` nicht leer **oder** `previous antiviral drugs…` nicht NaN.
-   * Prüfen der Definition mit Fachexperten, ggf. Code‑Book ergänzen.
-
-3. **Summary‑Table** (Basis für Sankey)
-
-   ```text
-   NMVr_firstline | Other_AV | n | %
-   ---------------|----------|---|---
-   Yes            | Yes      |   |
-   Yes            | No       |   |
-   No             | Yes      |   |
-   No             | No       |   |
-   ```
-
-   * Prozentwerte relativ zur jeweiligen Population (104 / 29).
-
-4. **Plot‑Erstellung**
-
-   * Python‑Pakete: `pandas`, `plotly` oder `matplotlib + pySankey`.
-   * Knotenreihenfolge fixieren: linke Knoten („No“, „Yes“), rechte Knoten („No“, „Yes“).
-   * Flussbreite = `n`.
-   * Label‑Format: “No (71%, 74)” etc.
-
-5. **Export & Qualitäts‑Check**
-
-   * Auflösung prüfen (≥ 300 dpi), Achsen/Ränder abschneiden, Dateinamen:
-     `sankey_POI_104.png`, `sankey_sPOI_mono_29.png`, `...pdf`.
-   * Peer‑Review durch Aresh, ggf. Farbanpassungen.
+> **Praktisches Mapping für die Grafik**
+>
+> ```text
+> NMVr_1L = (any previous NMV-r treatment …) == "yes"
+> OtherAV_1L = (previous antiviral drugs … ≠ "none") OR
+>              (concomitant antiviral therapy … ≠ "none")
+> ```
 
 ---
 
-#### 5  |  Kontext für spätere Erweiterungen
+## 4  |  Sankey‑/Snake‑Diagramm – Detail‑Spezifikation
 
-* **Included‑Sheet** enthält die bibliographischen Metadaten der Quellstudien – nützlich für PRISMA‑Flowcharts, derzeit aber nicht Teil des Auftrags.
-* **sPOI combo (n = 56)** könnte in einem zweiten Schritt analog ausgewertet werden (Vergleich Mono vs. Kombi).
-* Variablen wie `eradication outcome` & `survival outcome` bieten Potenzial für Kaplan‑Meier‑Plots oder Forest‑Plots, falls in späteren Analysen benötigt.
+| Attribut              | Vorgabe (laut Meeting)                                                     |
+| --------------------- | -------------------------------------------------------------------------- |
+| **Panels**            | Panel A = POI (n = 104) • Panel B = sPOI‑mono (n = 29)                     |
+| **Knoten links**      | „NMV‑r 1st Line: Yes“ / „No“                                               |
+| **Knoten rechts**     | „Other antiviral 1st Line: Yes“ / „No“                                     |
+| **Flows (4 Stück)**   | Yes/Yes • Yes/No • No/Yes • No/No                                          |
+| **Breite**            | proportional zu absoluten **n**                                            |
+| **Label jedes Flows** | `n = XX (YY %)` – YY gerundet auf ganze Prozent                            |
+| **Farbpalette**       | Okabe‑Ito (color‑blind‑safe) – evtl. Graustufen für No/No                  |
+| **Grafikformat**      | PNG (300 dpi, Breite ≥ 16 cm) *und* editierbares PDF                       |
+| **Dateinamen**        | `figure_POI_Sankey_test.png` / `.pdf`                                      |
+| **Review‑Prozess**    | Dr. Farokhnia annotiert Screenshot → Feedback‑Call                         |
+| **Anmerkungen**       | *Keine* Kaplan‑Meier‑Achsen, *kein* Venn‑Hybrid; reine Flow‑Visualisierung |
 
 ---
 
-#### 6  |  Ergebnis
+## 5  |  Reproduzierbarer Workflow (Minimal‑Scope)
 
-Diese Dokumentation liefert eine **vollständige, eindeutige Spezifikation** des Datenbestands, der Variablen, der gewünschten Visualisierungen und der notwendigen Verarbeitungsschritte. Eine statistisch versierte Person kann damit **ohne Einsicht in die ursprüngliche Mail oder den Screenshot** das Projekt nachvollziehen und die geforderten Grafiken exakt erstellen.
+### 5.1  Datenextraktion (separate README‑Ergänzung)
+
+*Wird von einem dedizierten Skript‑Autor umgesetzt; siehe Prompt 1.*
+
+1. **Ziel**: CSV‑Exports „as‑is“ (POI, sPOI‑mono, sPOI‑combo).
+2. **Kontrolle**: Zeilenzahl vs. Sheet‑N.
+3. **Output**: `POI_n104_raw.csv`, `sPOI_mono_n29_raw.csv`, `sPOI_combo_n56_raw.csv`.
+
+### 5.2  Minimal‑Cleaning & Feature‑Derivation
+
+| Schritt            | Umsetzung (Framework‑agnostisch)                                                                |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| **Import**         | CSVs in R / Python (pandas).                                                                    |
+| **Zeilenfilter**   | `first author` ≠ NA.                                                                            |
+| **Trim**           | Leerzeichen in *allen* Zellen & Spaltennamen.                                                   |
+| **Binary Flags**   | `NMVr_firstline` (Yes/No) aus Spalte 17;<br>`OtherAV_firstline` (Yes/No) aus Spalten 15 und 21. |
+| **Fehlende Werte** | Unklare / leere Felder → `"unknown"`; im Sankey nicht angezeigt.                                |
+| **Duplikate**      | Prüfung auf `study specific case/patient ID`; Duplikate **nur markieren**, nicht löschen.       |
+
+### 5.3  Aggregieren für Sankey
+
+```text
+Group by  NMVr_firstline, OtherAV_firstline
+Count     n
+Compute   %  = n / 104   (Panel A)  |   29 (Panel B)
+```
+
+### 5.4  Plotten
+
+1. **Tool**: R (ggplot2).
+
+---
+
+## 6  |  Frequently Asked Implementation Questions
+
+| Frage                                               | Kurzantwort                                                                                     |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Muss die sPOI‑combo‑Gruppe irgendwo auftauchen?** | **Nein** – erst nach Abnahme der Test‑Grafik diskutieren.                                       |
+| **Glukokortikoide, Outcomes, Extended Days?**       | Für diese Grafik **irrelevant**; bleiben im Datensatz ungenutzt.                                |
+| **Warum zwei Panels statt vier Grafiken?**          | Wunsch Auftraggeber: direkte Nebeneinander‑Vergleichbarkeit von Gesamt‑ vs. Mono‑Subkohorte.    |
+| **Prozentbasis für sPOI‑mono?**                     | **29** Fälle sind 100 %; keine Hochrechnung auf 104.                                            |
+| **Ist ein Code‑Lockfile nötig?**                    | Nicht gefordert; Coding kann in beliebiger Umgebung erfolgen, solange PNG & PDF lieferbar sind. |
+
+---
+
+## 7  |  Nächste Schritte (ausschließlich aus Meeting & Mail)
+
+1. **CSV‑Export (Prompt 1)** – *Sofort ausführen.*
+2. **Minimal‑Cleaning & Flag‑Ableitung** – über ein zweites Skript oder Notebook.
+3. **Erstellen der Test‑Sankey‑Grafik** nach Spezifikation.
+4. **Versand Montagabend** an Dr. Farokhnia.
+5. **Feedback‑Termin** → ggf. Farb‑ oder Label‑Feintuning.
+6. **Erst nach Freigabe**: Entscheidung, ob
+
+   * Zweitlinien‑Mono vs Kombi‑Grafik,
+   * Outcome‑Analysen,
+   * oder PRISMA/Forest‑Plots erstellt werden.
+
+*(Alle weiterführenden Analysen sind ausdrücklich **vertagt**.)*
+
+---
+
+## 8  |  Optional – Dokumentations‑Best‑Practice (nicht Teil des aktuellen Auftrags)
+
+| Empfehlung               | Begründung                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| **Codebook (YAML/JSON)** | erleichtert späteres Mapping der Langheader auf handlichere Variablennamen.                     |
+| **renv / virtualenv**    | garantiert Reproduzierbarkeit von Plot‑Farben & Layout in Folge‑Analysen.                       |
+| **PRISMA‑Diagramm**      | das Sheet *Included* liefert bereits Autor + n – kann später halb‑automatisch generiert werden. |
+| **Versionierung**        | Namenskonvention `figure_POI_Sankey_v01.png` → Feedback → v02 …                                 |
+
+---
+
+## 9  |  Take‑Home‑Message (One‑Pager)
+
+> **Aufgabe:**
+> Erzeuge **eine** farbenblind‑taugliche Sankey‑Grafik, die für **POI (104 Fälle)** und **sPOI‑mono (29 Fälle)** zeigt, ob Patient\*innen in der Erstlinie NMV‑r und/oder andere Antiviralia erhalten haben. Alles weitere (Mono vs Kombi, Outcomes, Publikations‑Tabellen) wird **erst nach** Sichtung und Freigabe dieser Testgrafik definiert.
+
+---
+
+*Prepared by: Clinical Biostatistics | File version: README\_v4 | Last update: 15 Jul 2025*
+
