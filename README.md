@@ -15,11 +15,11 @@
 
 ---
 
-#### 2  |  Excel‑Datei **data characteristics v2.xlsx** – Struktur
+#### 2  |  Excel‑Datei **data characteristics v3.xlsx** – Struktur
 
 | Ordner    | Datei                            | Relevanz         | Inhalt in Kurzform                  |
 | --------- | -------------------------------- | ---------------- | ----------------------------------- |
-| /mnt/data | **data characteristics v2.xlsx** | Arbeitsgrundlage | 4 Worksheets (Sheets) – siehe unten |
+| /mnt/data | **data characteristics v3.xlsx** | Arbeitsgrundlage | 4 Worksheets (Sheets) – siehe unten |
 
 ##### 2.1  |  Worksheet‑Übersicht
 
