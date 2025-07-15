@@ -7,3 +7,5 @@
 - Removed `extract_csvs.R` to comply with package restrictions.
 
 - Added `sankey_POI.R` for generating the test Sankey plot; includes commented-out export lines.
+
+- Updated sankey_POI.R to read POI_n104_raw.csv and plot with ggsankeyfier. Added labels via geom_text and kept ggsave lines commented.
