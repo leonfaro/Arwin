@@ -174,4 +174,4 @@ for c in cols:
     fill(c,'  *Thrombocytopenia*',d['adverse']=='Thrombocytopenia')
     fill(c,'  *Other AE*',d['adverse']=='Other')
 
-print(out)
+print(out.fillna(''))
