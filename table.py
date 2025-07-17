@@ -285,6 +285,26 @@ out.at["  *BA.5-derived Omicron subvariant*", "p-Value"] = fmt_p(
 out.at["  *BA.2-derived Omicron subvariant*", "p-Value"] = fmt_p(
     p_binary(df["variant"] == "BA.2-derived Omicron subvariant")
 )
+out.at["  *BA.1-derived Omicron subvariant*", "p-Value"] = fmt_p(
+    p_binary(df["variant"] == "BA.1-derived Omicron subvariant")
+)
+out.at["  *Other variant*", "p-Value"] = fmt_p(
+    p_binary(df["variant"] == "Other")
+)
+out.at["Prolonged viral shedding (≥14 days)", "p-Value"] = fmt_p(
+    p_binary(df["prolonged"])
+)
+out.at["Survival", "p-Value"] = fmt_p(p_binary(df["survival"] == "Yes"))
+out.at["Adverse events", "p-Value"] = fmt_p(p_chi(df["adverse"]))
+out.at["  *None (AE)*", "p-Value"] = fmt_p(
+    p_binary(df["adverse"] == "None")
+)
+out.at["  *Thrombocytopenia*", "p-Value"] = fmt_p(
+    p_binary(df["adverse"] == "Thrombocytopenia")
+)
+out.at["  *Other AE*", "p-Value"] = fmt_p(
+    p_binary(df["adverse"] == "Other")
+)
 
 if __name__ == "__main__":
     print(out.fillna(""))
