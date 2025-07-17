@@ -147,8 +147,10 @@ def p_binary(mask):
 
 
 def p_mwu(series):
-    g1 = series[df["therapy"] == "Combination"]
-    g2 = series[df["therapy"] == "Monotherapy"]
+    g1 = series[df["therapy"] == "Combination"].dropna()
+    g2 = series[df["therapy"] == "Monotherapy"].dropna()
+    if g1.empty or g2.empty:
+        return np.nan
     return mannwhitneyu(g1, g2, alternative="two-sided")[1]
 
 
@@ -265,6 +267,24 @@ out.at["Immunosuppressive treatment", "p-Value"] = fmt_p(val)
 out.at["  *None (IS)*", "p-Value"] = fmt_p(p_binary(df["immuno"] == "None"))
 val = p_binary(df["immuno"] == "Anti-CD-20")
 out.at["  *Anti-CD-20*", "p-Value"] = fmt_p(val)
+out.at["  *CAR-T*", "p-Value"] = fmt_p(p_binary(df["immuno"] == "CAR-T"))
+out.at["Glucocorticoid use", "p-Value"] = fmt_p(p_binary(df["gc"] == "Yes"))
+out.at[
+    "SARS-CoV-2 Vaccination",
+    "p-Value",
+] = fmt_p(p_binary(df["vacc"] == "Yes"))
+out.at["Number of vaccine doses", "p-Value"] = fmt_p(p_mwu(df["doses"]))
+out.at["Thoracic CT changes", "p-Value"] = fmt_p(p_binary(df["ct"] == "Yes"))
+out.at["Duration of SARS-CoV-2 replication (days)", "p-Value"] = fmt_p(
+    p_mwu(df["rep"])
+)
+out.at["SARS-CoV-2 genotype", "p-Value"] = fmt_p(p_chi(df["variant"]))
+out.at["  *BA.5-derived Omicron subvariant*", "p-Value"] = fmt_p(
+    p_binary(df["variant"] == "BA.5-derived Omicron subvariant")
+)
+out.at["  *BA.2-derived Omicron subvariant*", "p-Value"] = fmt_p(
+    p_binary(df["variant"] == "BA.2-derived Omicron subvariant")
+)
 
 if __name__ == "__main__":
     print(out.fillna(""))
