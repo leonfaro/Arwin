@@ -218,6 +218,7 @@ rows = [
 ]
 
 out = pd.DataFrame(index=rows, columns=list(groups))
+out.index.name = "N="
 
 
 def age_fmt(x):
