@@ -1,31 +1,34 @@
 import pandas as pd
 import numpy as np
-from scipy.stats import fisher_exact, mannwhitneyu, chi2_contingency
+from scipy.stats import fisher_exact, chi2_contingency, mannwhitneyu, shapiro, ttest_ind
+from statsmodels.stats.multitest import multipletests
 
-wb = "Data.xlsx"
-df = pd.read_excel(wb, sheet_name=0)
-therapy_col = df[df.columns[17]].str.strip().str[0]
-therapy = therapy_col.map({"c": "Combination", "m": "Monotherapy"})
+df = pd.read_excel("Data.xlsx", sheet_name=0)
+therapy = (
+    df[df.columns[17]].str.strip().str[0].map({"c": "Combination", "m": "Monotherapy"})
+)
 df["therapy"] = therapy
 
 
 def group_disease(x):
-    s = str(x)
+    if not isinstance(x, str):
+        return "Unknown"
+    s = x.lower()
     if "m" in s:
         return "Haematological malignancy"
     if "t" in s:
         return "Transplantation"
     if "a" in s:
         return "Autoimmune disease"
-    return "Autoimmune disease"
+    return "Unknown"
 
 
-df["disease"] = df[df.columns[2]].apply(group_disease)
+df["disease"] = df[df.columns[2]].map(group_disease)
 
 
 def group_immuno(x):
     if not isinstance(x, str):
-        return "None"
+        return "Unknown"
     s = x.lower()
     if "car-t" in s:
         return "CAR-T"
@@ -33,34 +36,34 @@ def group_immuno(x):
         return "Anti-CD-20"
     if "none" in s:
         return "None"
-    return "None"
+    return "Other"
 
 
-df["immuno"] = df["baseline therapy"].apply(group_immuno)
+df["immuno"] = df["baseline therapy"].map(group_immuno)
 
 
 def flag_gc(x):
     if not isinstance(x, str):
-        return "No"
+        return "Unknown"
     s = x.lower().strip()
     if s.startswith("n") or "none" in s:
         return "No"
-    return "Yes"
+    if s.startswith("y"):
+        return "Yes"
+    return "Unknown"
 
 
-df["gc"] = df["any glucocorticosteroid usage? \n[yes / no]"].apply(flag_gc)
+df["gc"] = df["any glucocorticosteroid usage? \n[yes / no]"].map(flag_gc)
 
 
 def parse_vacc(x):
     if not isinstance(x, str):
-        return "No", 0
+        return "Unknown", np.nan
     s = x.lower().strip()
     if s.startswith("n"):
-        return "No", 0
-    import re
-
-    m = re.search(r"(\d+)", s)
-    return "Yes", int(m.group(1)) if m else 0
+        return "No", 0.0
+    m = __import__("re").search(r"(\d+)", s)
+    return "Yes", float(m.group(1)) if m else np.nan
 
 
 vacc = df["vaccination [yes / no] (doses) ?"].map(parse_vacc)
@@ -79,92 +82,123 @@ def group_ct(x):
     return "Unknown"
 
 
-df["ct"] = df["CT lung changes [yes / no] ?"].apply(group_ct)
-
+df["ct"] = df["CT lung changes [yes / no] ?"].map(group_ct)
 df["rep"] = pd.to_numeric(df["SARS-CoV-2 replication [days]"], errors="coerce")
 
 
 def group_variant(x):
     if not isinstance(x, str):
-        return "Other"
-    s = x.upper()
+        return "Unknown"
+    s = x.upper().strip()
     if s.startswith(
-        (
-            "BA.5",
-            "BF",
-            "BQ",
-            "BE",
-            "EG",
-            "HH",
-            "JG",
-            "XBF",
-            "XCH",
-            "FR",
-            "XBB",
-            "XAY",
-        )
+        ("BA.5", "BF", "BQ", "BE", "EG", "HH", "JG", "XBF", "XCH", "FR", "XBB", "XAY")
     ):
         return "BA.5-derived Omicron subvariant"
-    if s.startswith(("BA.2", "CH", "XCH")):
+    if s.startswith(("BA.2", "CH")):
         return "BA.2-derived Omicron subvariant"
     if s.startswith("BA.1"):
         return "BA.1-derived Omicron subvariant"
     return "Other"
 
 
-df["variant"] = df["SARS-CoV-2 genotype"].apply(group_variant)
+df["variant"] = df["SARS-CoV-2 genotype"].map(group_variant)
 df["prolonged"] = df["rep"] >= 14
 
 
 def flag_survival(x):
     if not isinstance(x, str):
+        return "Unknown"
+    s = x.lower().strip()
+    if s.startswith("y"):
+        return "Yes"
+    if s.startswith("n"):
         return "No"
-    return "Yes" if x.lower().startswith("y") else "No"
+    return "Unknown"
 
 
-df["survival"] = df["survival outcome [yes / no] ?"].apply(flag_survival)
+df["survival"] = df["survival outcome [yes / no] ?"].map(flag_survival)
 
 
-def group_adv(row):
-    a = row["any adverse events [yes / no] ?"]
-    t = str(row["type of adverse event"]).lower()
+def group_adv(a, t):
     if isinstance(a, str) and a.lower().startswith("y"):
+        t = str(t).lower()
         if "thrombocytopenia" in t:
             return "Thrombocytopenia"
         return "Other"
-    return "None"
+    if isinstance(a, str) and a.lower().startswith("n"):
+        return "None"
+    return "Unknown"
 
 
-df["adverse"] = df.apply(group_adv, axis=1)
+df["adverse"] = df.apply(
+    lambda r: group_adv(
+        r["any adverse events [yes / no] ?"], r["type of adverse event"]
+    ),
+    axis=1,
+)
 
 
-def p_binary(mask):
-    t = pd.crosstab(mask, df["therapy"])
-    e = np.outer(t.sum(axis=1), t.sum(axis=0)) / t.values.sum()
-    if (e < 5).any():
-        return fisher_exact(t)[1]
-    return chi2_contingency(t, correction=False)[1]
+def chi2_perm(series):
+    cats = pd.Categorical(series)
+    obs_tab = pd.crosstab(cats, df["therapy"])
+    obs = chi2_contingency(obs_tab, correction=False)[0]
+    codes = cats.codes
+    labels = df["therapy"].values.copy()
+    rng = np.random.default_rng(0)
+    cnt = 0
+    for _ in range(10000):
+        rng.shuffle(labels)
+        perm = np.zeros(obs_tab.shape)
+        for i in range(len(cats.categories)):
+            mask = codes == i
+            perm[i, 0] = np.sum(labels[mask] == "Combination")
+            perm[i, 1] = np.sum(labels[mask] == "Monotherapy")
+        val = chi2_contingency(perm, correction=False)[0]
+        if val >= obs:
+            cnt += 1
+    return cnt / 10000
 
 
-def p_mwu(series):
+def p_categorical(series):
+    table = pd.crosstab(series, df["therapy"])
+    exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
+    if series.nunique() == 2:
+        if (exp < 5).any():
+            return fisher_exact(table)[1]
+        return chi2_contingency(table, correction=False)[1]
+    if (exp < 5).any():
+        return chi2_perm(series)
+    return chi2_contingency(table, correction=False)[1]
+
+
+def p_continuous(series):
     g1 = series[df["therapy"] == "Combination"].dropna()
     g2 = series[df["therapy"] == "Monotherapy"].dropna()
     if g1.empty or g2.empty:
-        return np.nan
-    return mannwhitneyu(g1, g2, alternative="two-sided")[1]
+        return np.nan, "median"
+    n1 = len(g1)
+    n2 = len(g2)
+    normal = (
+        n1 >= 30
+        and n2 >= 30
+        and shapiro(g1).pvalue > 0.05
+        and shapiro(g2).pvalue > 0.05
+    )
+    if normal:
+        return ttest_ind(g1, g2, equal_var=False).pvalue, "mean"
+    return mannwhitneyu(g1, g2, alternative="two-sided").pvalue, "median"
 
 
-def p_chi(series):
-    t = pd.crosstab(series, df["therapy"])
-    return chi2_contingency(t, correction=False)[1]
+def fmt_num(x, typ):
+    if typ == "mean":
+        return f"{x.mean():.1f} ± {x.std():.1f}"
+    return f"{int(x.median())} ({int(x.quantile(0.25))}-{int(x.quantile(0.75))})"
 
 
-def fmt_p(x):
-    return "<0.001" if x < 0.001 else f"{x:.3f}"
+def fmt_count(mask):
+    return f"{mask.sum()} ({mask.mean()*100:.1f}%)"
 
 
-groups = ["Total", "Combination", "Monotherapy"]
-cols = groups + ["p-Value"]
 rows = [
     "Age",
     "Sex (female)",
@@ -194,117 +228,157 @@ rows = [
     "  *Other AE*",
 ]
 
+
+groups = ["Total", "Combination", "Monotherapy"]
+cols = groups + ["p-Value", "q-Value", "Sig"]
 out = pd.DataFrame(index=rows, columns=cols)
 
 
-def age_fmt(x):
-    return f"{int(x.median())} ({int(x.quantile(.25))}-{int(x.quantile(.75))})"
+p_store = {}
 
+p_store["Age"], mode_age = p_continuous(df["age"])
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Age", g] = fmt_num(d["age"], mode_age)
 
-def fill(c, row, series):
-    out.at[row, c] = f"{series.sum()} ({series.mean()*100:.1f}%)"
+out.at["Sex (female)", "Combination"] = fmt_count(
+    (df["therapy"] == "Combination") & (df["sex [male, female]"] == "f")
+)
+out.at["Sex (female)", "Monotherapy"] = fmt_count(
+    (df["therapy"] == "Monotherapy") & (df["sex [male, female]"] == "f")
+)
+out.at["Sex (female)", "Total"] = fmt_count(df["sex [male, female]"] == "f")
+p_store["Sex (female)"] = p_categorical(df["sex [male, female]"] == "f")
 
-
-for c in groups:
-    d = df if c == "Total" else df[df["therapy"] == c]
-    out.at["Age", c] = age_fmt(d["age"])
-    fill(c, "Sex (female)", d["sex [male, female]"] == "f")
-    fill(
-        c,
-        "  *Haematological malignancy*",
-        d["disease"] == "Haematological malignancy",
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["  *Haematological malignancy*", g] = fmt_count(
+        d["disease"] == "Haematological malignancy"
     )
-    fill(c, "  *Autoimmune disease*", d["disease"] == "Autoimmune disease")
-    fill(c, "  *Transplantation*", d["disease"] == "Transplantation")
-    fill(c, "  *None (IS)*", d["immuno"] == "None")
-    fill(c, "  *Anti-CD-20*", d["immuno"] == "Anti-CD-20")
-    fill(c, "  *CAR-T*", d["immuno"] == "CAR-T")
-    fill(c, "Glucocorticoid use", d["gc"] == "Yes")
-    fill(c, "SARS-CoV-2 Vaccination", d["vacc"] == "Yes")
-    out.at["Number of vaccine doses", c] = f"{int(d['doses'].median())}"
-    fill(c, "Thoracic CT changes", d["ct"] == "Yes")
-    out.at[
-        "Duration of SARS-CoV-2 replication (days)",
-        c,
-    ] = f"{int(d['rep'].median())}"
-    fill(
-        c,
-        "  *BA.5-derived Omicron subvariant*",
-        d["variant"] == "BA.5-derived Omicron subvariant",
+    out.at["  *Autoimmune disease*", g] = fmt_count(
+        d["disease"] == "Autoimmune disease"
     )
-    fill(
-        c,
-        "  *BA.2-derived Omicron subvariant*",
-        d["variant"] == "BA.2-derived Omicron subvariant",
-    )
-    fill(
-        c,
-        "  *BA.1-derived Omicron subvariant*",
-        d["variant"] == "BA.1-derived Omicron subvariant",
-    )
-    fill(c, "  *Other variant*", d["variant"] == "Other")
-    fill(c, "Prolonged viral shedding (≥14 days)", d["prolonged"])
-    fill(c, "Survival", d["survival"] == "Yes")
-    fill(c, "  *None (AE)*", d["adverse"] == "None")
-    fill(c, "  *Thrombocytopenia*", d["adverse"] == "Thrombocytopenia")
-    fill(c, "  *Other AE*", d["adverse"] == "Other")
+    out.at["  *Transplantation*", g] = fmt_count(d["disease"] == "Transplantation")
+out.at["Disease group", "Total"] = ""
+out.at["Disease group", "Combination"] = ""
+out.at["Disease group", "Monotherapy"] = ""
+p_store["Disease group"] = p_categorical(df["disease"])
+p_store["  *Haematological malignancy*"] = p_categorical(
+    df["disease"] == "Haematological malignancy"
+)
+p_store["  *Autoimmune disease*"] = p_categorical(df["disease"] == "Autoimmune disease")
+p_store["  *Transplantation*"] = p_categorical(df["disease"] == "Transplantation")
 
-out.at["Age", "p-Value"] = fmt_p(p_mwu(df["age"]))
-val = p_binary(df["sex [male, female]"] == "f")
-out.at["Sex (female)", "p-Value"] = fmt_p(val)
-out.at["Disease group", "p-Value"] = fmt_p(p_chi(df["disease"]))
-out.at["  *Haematological malignancy*", "p-Value"] = fmt_p(
-    p_binary(df["disease"] == "Haematological malignancy")
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["  *None (IS)*", g] = fmt_count(d["immuno"] == "None")
+    out.at["  *Anti-CD-20*", g] = fmt_count(d["immuno"] == "Anti-CD-20")
+    out.at["  *CAR-T*", g] = fmt_count(d["immuno"] == "CAR-T")
+out.at["Immunosuppressive treatment", "Total"] = ""
+out.at["Immunosuppressive treatment", "Combination"] = ""
+out.at["Immunosuppressive treatment", "Monotherapy"] = ""
+p_store["Immunosuppressive treatment"] = p_categorical(df["immuno"])
+p_store["  *None (IS)*"] = p_categorical(df["immuno"] == "None")
+p_store["  *Anti-CD-20*"] = p_categorical(df["immuno"] == "Anti-CD-20")
+p_store["  *CAR-T*"] = p_categorical(df["immuno"] == "CAR-T")
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Glucocorticoid use", g] = fmt_count(d["gc"] == "Yes")
+p_store["Glucocorticoid use"] = p_categorical(df["gc"] == "Yes")
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["SARS-CoV-2 Vaccination", g] = fmt_count(d["vacc"] == "Yes")
+out["Number of vaccine doses"] = ""
+p_store["SARS-CoV-2 Vaccination"] = p_categorical(df["vacc"] == "Yes")
+p_store["Number of vaccine doses"], mode_dose = p_continuous(df["doses"])
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Number of vaccine doses", g] = fmt_num(d["doses"].dropna(), mode_dose)
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Thoracic CT changes", g] = fmt_count(d["ct"] == "Yes")
+p_store["Thoracic CT changes"] = p_categorical(df["ct"] == "Yes")
+
+p_store["Duration of SARS-CoV-2 replication (days)"], mode_rep = p_continuous(df["rep"])
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Duration of SARS-CoV-2 replication (days)", g] = fmt_num(d["rep"], mode_rep)
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["  *BA.5-derived Omicron subvariant*", g] = fmt_count(
+        d["variant"] == "BA.5-derived Omicron subvariant"
+    )
+    out.at["  *BA.2-derived Omicron subvariant*", g] = fmt_count(
+        d["variant"] == "BA.2-derived Omicron subvariant"
+    )
+    out.at["  *BA.1-derived Omicron subvariant*", g] = fmt_count(
+        d["variant"] == "BA.1-derived Omicron subvariant"
+    )
+    out.at["  *Other variant*", g] = fmt_count(d["variant"] == "Other")
+out.at["SARS-CoV-2 genotype", "Total"] = ""
+out.at["SARS-CoV-2 genotype", "Combination"] = ""
+out.at["SARS-CoV-2 genotype", "Monotherapy"] = ""
+p_store["SARS-CoV-2 genotype"] = p_categorical(df["variant"])
+p_store["  *BA.5-derived Omicron subvariant*"] = p_categorical(
+    df["variant"] == "BA.5-derived Omicron subvariant"
 )
-out.at["  *Autoimmune disease*", "p-Value"] = fmt_p(
-    p_binary(df["disease"] == "Autoimmune disease")
+p_store["  *BA.2-derived Omicron subvariant*"] = p_categorical(
+    df["variant"] == "BA.2-derived Omicron subvariant"
 )
-out.at["  *Transplantation*", "p-Value"] = fmt_p(
-    p_binary(df["disease"] == "Transplantation")
+p_store["  *BA.1-derived Omicron subvariant*"] = p_categorical(
+    df["variant"] == "BA.1-derived Omicron subvariant"
 )
-val = p_chi(df["immuno"])
-out.at["Immunosuppressive treatment", "p-Value"] = fmt_p(val)
-out.at["  *None (IS)*", "p-Value"] = fmt_p(p_binary(df["immuno"] == "None"))
-val = p_binary(df["immuno"] == "Anti-CD-20")
-out.at["  *Anti-CD-20*", "p-Value"] = fmt_p(val)
-out.at["  *CAR-T*", "p-Value"] = fmt_p(p_binary(df["immuno"] == "CAR-T"))
-out.at["Glucocorticoid use", "p-Value"] = fmt_p(p_binary(df["gc"] == "Yes"))
-out.at[
-    "SARS-CoV-2 Vaccination",
-    "p-Value",
-] = fmt_p(p_binary(df["vacc"] == "Yes"))
-out.at["Number of vaccine doses", "p-Value"] = fmt_p(p_mwu(df["doses"]))
-out.at["Thoracic CT changes", "p-Value"] = fmt_p(p_binary(df["ct"] == "Yes"))
-out.at["Duration of SARS-CoV-2 replication (days)", "p-Value"] = fmt_p(
-    p_mwu(df["rep"])
+p_store["  *Other variant*"] = p_categorical(df["variant"] == "Other")
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Prolonged viral shedding (≥14 days)", g] = fmt_count(d["prolonged"])
+p_store["Prolonged viral shedding (≥14 days)"] = p_categorical(df["prolonged"])
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Survival", g] = fmt_count(d["survival"] == "Yes")
+p_store["Survival"] = p_categorical(df["survival"] == "Yes")
+
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["  *None (AE)*", g] = fmt_count(d["adverse"] == "None")
+    out.at["  *Thrombocytopenia*", g] = fmt_count(d["adverse"] == "Thrombocytopenia")
+    out.at["  *Other AE*", g] = fmt_count(d["adverse"] == "Other")
+out.at["Adverse events", "Total"] = ""
+out.at["Adverse events", "Combination"] = ""
+out.at["Adverse events", "Monotherapy"] = ""
+p_store["Adverse events"] = p_categorical(df["adverse"])
+p_store["  *None (AE)*"] = p_categorical(df["adverse"] == "None")
+p_store["  *Thrombocytopenia*"] = p_categorical(df["adverse"] == "Thrombocytopenia")
+p_store["  *Other AE*"] = p_categorical(df["adverse"] == "Other")
+
+
+pvals = pd.Series(p_store)
+mask = pvals.notna()
+qs = pd.Series(index=pvals.index, dtype=float)
+qs[mask] = multipletests(pvals[mask], method="fdr_bh")[1]
+
+out["p-Value"] = pvals.apply(lambda x: "<0.001" if x < 0.001 else f"{x:.3f}")
+out["q-Value"] = qs.apply(
+    lambda x: "" if pd.isna(x) else ("<0.001" if x < 0.001 else f"{x:.3f}")
 )
-out.at["SARS-CoV-2 genotype", "p-Value"] = fmt_p(p_chi(df["variant"]))
-out.at["  *BA.5-derived Omicron subvariant*", "p-Value"] = fmt_p(
-    p_binary(df["variant"] == "BA.5-derived Omicron subvariant")
+out["Sig"] = qs.apply(
+    lambda x: (
+        "***"
+        if pd.notna(x) and x <= 0.001
+        else (
+            "**"
+            if pd.notna(x) and x <= 0.01
+            else ("*" if pd.notna(x) and x <= 0.05 else "")
+        )
+    )
 )
-out.at["  *BA.2-derived Omicron subvariant*", "p-Value"] = fmt_p(
-    p_binary(df["variant"] == "BA.2-derived Omicron subvariant")
-)
-out.at["  *BA.1-derived Omicron subvariant*", "p-Value"] = fmt_p(
-    p_binary(df["variant"] == "BA.1-derived Omicron subvariant")
-)
-out.at["  *Other variant*", "p-Value"] = fmt_p(
-    p_binary(df["variant"] == "Other")
-)
-out.at["Prolonged viral shedding (≥14 days)", "p-Value"] = fmt_p(
-    p_binary(df["prolonged"])
-)
-out.at["Survival", "p-Value"] = fmt_p(p_binary(df["survival"] == "Yes"))
-out.at["Adverse events", "p-Value"] = fmt_p(p_chi(df["adverse"]))
-out.at["  *None (AE)*", "p-Value"] = fmt_p(
-    p_binary(df["adverse"] == "None")
-)
-out.at["  *Thrombocytopenia*", "p-Value"] = fmt_p(
-    p_binary(df["adverse"] == "Thrombocytopenia")
-)
-out.at["  *Other AE*", "p-Value"] = fmt_p(
-    p_binary(df["adverse"] == "Other")
-)
+
 
 if __name__ == "__main__":
     print(out.fillna(""))
