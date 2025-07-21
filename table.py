@@ -62,7 +62,7 @@ if missing:
 def group_disease(x):
     if not isinstance(x, str):
         return "Unknown"
-    tokens = set(i.strip() for i in x.upper().split("/"))
+    tokens = set(i.strip() for i in re.split(r"[ /,;]", x.upper()) if i.strip())
     a = "A" in tokens
     m = "M" in tokens
     t = "T" in tokens
@@ -78,17 +78,13 @@ def group_disease(x):
 
 
 df["disease"] = df[col_disease].map(group_disease)
-mixed_count = (df["disease"] == "Mixed").sum()
-if mixed_count < 5:
-    df.loc[df["disease"] == "Mixed", "disease"] = "Transplantation"
 
 
 def group_immuno_detail(x):
     if not isinstance(x, str) or not x.strip():
         return "None"
     s = x.lower()
-    k = ("ritux", "rtx", "obinutuzumab", "obinu", "obi", "ocrelizumab", "ocre", "ocr", "mosunetuzumab", "mosu", "mos")
-    if any(i in s for i in k):
+    if re.search("cd20|umab", s):
         return "Anti-CD-20"
     if "none" in s or "no is" in s:
         return "None"
