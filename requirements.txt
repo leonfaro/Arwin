@@ -1,4 +1,4 @@
-pandas==2.2.2
-numpy==1.26.4
-scipy==1.13.0
-statsmodels==0.15.0
+pandas==2.2.*
+numpy==1.26.*
+scipy==1.15.*
+statsmodels==0.14.5
