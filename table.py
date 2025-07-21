@@ -2,18 +2,12 @@ import pandas as pd
 import numpy as np
 from scipy.stats import fisher_exact, chi2_contingency, mannwhitneyu, shapiro, ttest_ind
 from statsmodels.stats.multitest import multipletests
+import re
 
 xls = pd.ExcelFile("Data.xlsx")
-relevant = [s for s in xls.sheet_names if "information" not in s.lower()]
-frames = []
-for s in relevant:
-    f = pd.read_excel(xls, s)
-    f["source_sheet"] = s
-    frames.append(f)
-if len(frames) >= 3:
-    df = pd.concat(frames, ignore_index=True)
-else:
-    df = frames[0]
+relevant = [s for s in xls.sheet_names if re.search("combination|monotherapy", s, re.I)]
+frames = [pd.read_excel(xls, s).assign(source_sheet=s) for s in relevant]
+df = pd.concat(frames, ignore_index=True)
 
 
 def find_col(df, *keywords):
@@ -49,7 +43,7 @@ col_age = find_col(df, "age")
 col_disease = find_col(df, "baseline disease cohort")
 col_base = find_col(df, "baseline therapy")
 col_vacc = find_col(df, "vaccination")
-col_gen = find_col(df, "sars-cov-2 genotype")
+col_gen = find_col(df, "sars-cov-2", "genotype")
 col_ct = find_col(df, "ct", "lung")
 col_rep = find_col(df, "replication")
 col_gc = find_col(df, "glucocorticosteroid")
@@ -68,7 +62,7 @@ if missing:
 def group_disease(x):
     if not isinstance(x, str):
         return "Unknown"
-    tokens = set(i.strip() for i in x.upper().split("/"))
+    tokens = set(i.strip() for i in re.split(r"[ /,;]", x.upper()) if i.strip())
     a = "A" in tokens
     m = "M" in tokens
     t = "T" in tokens
@@ -84,17 +78,13 @@ def group_disease(x):
 
 
 df["disease"] = df[col_disease].map(group_disease)
-mixed_count = (df["disease"] == "Mixed").sum()
-if mixed_count < 5:
-    df.loc[df["disease"] == "Mixed", "disease"] = "Transplantation"
 
 
 def group_immuno_detail(x):
     if not isinstance(x, str) or not x.strip():
         return "None"
     s = x.lower()
-    k = ("ritux", "rtx", "obinutuzumab", "obinu", "obi", "ocrelizumab", "ocre", "ocr", "mosunetuzumab", "mosu", "mos")
-    if any(i in s for i in k):
+    if re.search("cd20|umab", s):
         return "Anti-CD-20"
     if "none" in s or "no is" in s:
         return "None"
@@ -106,13 +96,22 @@ df["immuno3"] = df["immuno_detail"].map(lambda x: "Anti-CD-20" if x ==
                                         "Anti-CD-20" else ("None" if x == "None" else "Other"))
 
 
+def is_female(x):
+    s = str(x).lower().strip()
+    if s in {"f", "female", "w", "weiblich", "1"}:
+        return True
+    if s in {"m", "male", "0", "mann", "männlich"}:
+        return False
+    return np.nan
+
+
 def flag_gc(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if s.startswith("n") or "none" in s:
+    if re.search(r"^(n|no|0)", s):
         return "No"
-    if s.startswith("y"):
+    if re.search(r"^(y|yes|1|pred)", s):
         return "Yes"
     return "Unknown"
 
@@ -124,10 +123,13 @@ def parse_vacc(x):
     if not isinstance(x, str):
         return ("Unknown", np.nan)
     s = x.lower().strip()
-    if s.startswith("n"):
+    if re.search(r"^(n|no)", s):
         return ("No", 0.0)
-    m = __import__("re").search(r"(\d+)", s)
-    return ("Yes", float(m.group(1)) if m else np.nan)
+    if re.search(r"^(y|yes|vacc)", s):
+        clean = re.sub(r"[^0-9]", " ", s)
+        m = re.findall(r"\d+", clean)
+        return ("Yes", float(m[0]) if m else np.nan)
+    return ("Unknown", np.nan)
 
 
 vacc = df[col_vacc].map(parse_vacc)
@@ -154,43 +156,54 @@ def group_ct(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if s.startswith("y"):
+    if re.search(r"y|yes|positive|opa", s):
         return "Yes"
-    if s.startswith("n"):
+    if re.search(r"n|no|normal|neg", s):
         return "No"
     return "Unknown"
 
 
 df["ct"] = df[col_ct].map(group_ct)
-df["rep"] = pd.to_numeric(df[col_rep], errors="coerce")
+
+
+def parse_rep(x):
+    if isinstance(x, (int, float)) and not pd.isna(x):
+        return float(x)
+    if not isinstance(x, str):
+        return np.nan
+    m = re.search(r"(\d+)", x)
+    return float(m.group(1)) if m else np.nan
+
+
+df["rep"] = df[col_rep].map(parse_rep)
 
 
 def group_variant(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.upper().strip()
-    if s.startswith("BQ.1"):
+    if re.search(r"BQ\.?1", s):
         return "BQ.1.x"
-    if s.startswith("BA.5"):
+    if re.search(r"BA\.?5", s):
         return "BA.5.x"
-    if s.startswith("BA.2"):
+    if re.search(r"BA\.?2", s):
         return "BA.2.x"
-    if s.startswith("BA.1"):
+    if re.search(r"BA\.?1", s):
         return "BA.1.x"
     return "Other"
 
 
 df["variant"] = df[col_gen].map(group_variant)
-df["prolonged"] = df["rep"] >= 14
+df["prolonged"] = df["rep"].map(lambda x: np.nan if pd.isna(x) else x >= 14)
 
 
 def flag_survival(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if s.startswith("y"):
+    if re.search(r"^(alive|yes|1)", s):
         return "Yes"
-    if s.startswith("n"):
+    if re.search(r"^(dead|no|0)", s):
         return "No"
     return "Unknown"
 
@@ -199,12 +212,15 @@ df["survival"] = df[col_surv].map(flag_survival)
 
 
 def group_adv(a, t):
-    if isinstance(a, str) and a.lower().startswith("y"):
-        t = str(t).lower()
-        if "thrombocytopenia" in t:
+    a_s = str(a).lower().strip()
+    t_s = str(t).lower().strip()
+    if not a_s:
+        a_s = "y" if t_s else ""
+    if a_s.startswith("y"):
+        if re.search("thrombocytopenia|platelet", t_s):
             return "Thrombocytopenia"
         return "Other"
-    if isinstance(a, str) and a.lower().startswith("n"):
+    if a_s.startswith("n"):
         return "None"
     return "Unknown"
 
@@ -307,12 +323,13 @@ for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
     out.at["Age", g] = fmt_num(d[col_age], mode_age)
 
-mask_comb = (df["therapy"] == "Combination") & (df[col_sex].str.lower().str.startswith("f"))
-mask_mono = (df["therapy"] == "Monotherapy") & (df[col_sex].str.lower().str.startswith("f"))
+female = df[col_sex].map(is_female)
+mask_comb = (df["therapy"] == "Combination") & female
+mask_mono = (df["therapy"] == "Monotherapy") & female
 out.at["Sex (female)", "Combination"] = fmt_count(mask_comb)
 out.at["Sex (female)", "Monotherapy"] = fmt_count(mask_mono)
-out.at["Sex (female)", "Total"] = fmt_count(df[col_sex].str.lower().str.startswith("f"))
-p_store["Sex (female)"] = p_categorical(df[col_sex].str.lower().str.startswith("f"))
+out.at["Sex (female)", "Total"] = fmt_count(female)
+p_store["Sex (female)"] = p_categorical(female)
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
