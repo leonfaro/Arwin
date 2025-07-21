@@ -109,9 +109,9 @@ def flag_gc(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if s.startswith("n") or "none" in s:
+    if re.search(r"^(n|no|0)", s):
         return "No"
-    if s.startswith("y"):
+    if re.search(r"^(y|yes|1|pred)", s):
         return "Yes"
     return "Unknown"
 
@@ -123,10 +123,12 @@ def parse_vacc(x):
     if not isinstance(x, str):
         return ("Unknown", np.nan)
     s = x.lower().strip()
-    if s.startswith("n"):
+    if re.search(r"^(n|no)", s):
         return ("No", 0.0)
-    m = __import__("re").search(r"(\d+)", s)
-    return ("Yes", float(m.group(1)) if m else np.nan)
+    if re.search(r"^(y|yes|vacc)", s):
+        m = re.search(r"(\d+)", s)
+        return ("Yes", float(m.group(1)) if m else np.nan)
+    return ("Unknown", np.nan)
 
 
 vacc = df[col_vacc].map(parse_vacc)
@@ -153,9 +155,9 @@ def group_ct(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if s.startswith("y"):
+    if re.search(r"y|yes|positive|opa", s):
         return "Yes"
-    if s.startswith("n"):
+    if re.search(r"n|no|normal|neg", s):
         return "No"
     return "Unknown"
 
