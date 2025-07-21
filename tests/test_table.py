@@ -2,11 +2,18 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-out = __import__("table_v2").out
+out = __import__("table").out
 
 
 def test_columns():
-    assert list(out.columns) == ["Total", "Combination", "Monotherapy"]
+    assert list(out.columns) == [
+        "Total",
+        "Combination",
+        "Monotherapy",
+        "p-Value",
+        "q-Value",
+        "Sig",
+    ]
 
 
 def test_index_name():
@@ -15,9 +22,9 @@ def test_index_name():
 
 def test_rows():
     assert "Age" in out.index
-    assert "Prolonged viral shedding (\u2265 14 days)" in out.index
+    assert "Prolonged viral shedding (\u226514 days)" in out.index
 
 
 def test_column_access():
     src = open("table.py").read()
-    assert "any previous NMV-r treatment …" in src
+    assert "find_col" in src

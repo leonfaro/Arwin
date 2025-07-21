@@ -296,7 +296,6 @@ rows += [f"  *{i}*" for i in unique_order(df["adverse"].unique(), ae_order)]
 groups = ["Total", "Combination", "Monotherapy"]
 cols = groups + ["p-Value", "q-Value", "Sig"]
 out = pd.DataFrame(index=rows, columns=cols)
-out.index.name = "N="
 
 p_store = {}
 
