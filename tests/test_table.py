@@ -2,7 +2,8 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-out = __import__("table").out
+tbl = __import__("table")
+out = tbl.out
 
 
 def test_columns():
@@ -16,8 +17,10 @@ def test_columns():
     ]
 
 
-def test_index_name():
-    assert out.index.name == "N="
+def test_n_row():
+    n_row = out.loc["N="]
+    assert n_row["Total"] == len(tbl.df)
+    assert n_row["Combination"] + n_row["Monotherapy"] == len(tbl.df)
 
 
 def test_rows():
