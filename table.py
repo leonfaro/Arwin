@@ -5,7 +5,7 @@ from statsmodels.stats.multitest import multipletests
 import re
 
 xls = pd.ExcelFile("Data.xlsx")
-relevant = [s for s in xls.sheet_names if re.search("combination|monotherapy", s, re.I)]
+relevant = [s for s in xls.sheet_names if re.search("combination|monotherapy|total", s, re.I)]
 frames = [pd.read_excel(xls, s).assign(source_sheet=s) for s in relevant]
 df = pd.concat(frames, ignore_index=True)
 
@@ -26,6 +26,7 @@ for c in df.columns:
         break
 if col_therapy is not None:
     therapy = df[col_therapy].str.lower().str[0].map({"c": "Combination", "m": "Monotherapy"})
+    therapy = therapy.fillna("Unknown")
 else:
     def infer(x):
         s = str(x)
@@ -34,7 +35,7 @@ else:
         if "mono" in s.lower():
             return "Monotherapy"
         return np.nan
-    therapy = df["source_sheet"].map(infer)
+    therapy = df["source_sheet"].map(infer).fillna("Unknown")
     df[col_therapy] = ""
 df["therapy"] = therapy
 
@@ -62,10 +63,10 @@ if missing:
 def group_disease(x):
     if not isinstance(x, str):
         return "Unknown"
-    tokens = set(i.strip() for i in re.split(r"[ /,;]", x.upper()) if i.strip())
-    a = "A" in tokens
-    m = "M" in tokens
-    t = "T" in tokens
+    s = x.upper()
+    a = "AUTO" in s
+    m = "MALIGN" in s
+    t = "TRANSPLANT" in s
     if sum([a, m, t]) > 1:
         return "Mixed"
     if a:
@@ -84,7 +85,7 @@ def group_immuno_detail(x):
     if not isinstance(x, str) or not x.strip():
         return "None"
     s = x.lower()
-    if re.search("cd20|umab", s):
+    if any(k in s for k in ("ritux", "obinu", "ocrel", "mosune", "cd-20")):
         return "Anti-CD-20"
     if "none" in s or "no is" in s:
         return "None"
@@ -111,9 +112,11 @@ def flag_gc(x):
     s = x.lower().strip()
     if re.search(r"^(n|no|0)", s):
         return "No"
-    if re.search(r"^(y|yes|1|pred)", s):
+    if not s:
+        return "Unknown"
+    if any(k in s for k in ("pdn", "pred", "dxa", "dexa", "meth")):
         return "Yes"
-    return "Unknown"
+    return "Yes"
 
 
 df["gc"] = df[col_gc].map(flag_gc)
@@ -123,12 +126,12 @@ def parse_vacc(x):
     if not isinstance(x, str):
         return ("Unknown", np.nan)
     s = x.lower().strip()
-    if re.search(r"^(n|no)", s):
-        return ("No", 0.0)
-    if re.search(r"^(y|yes|vacc)", s):
-        clean = re.sub(r"[^0-9]", " ", s)
-        m = re.findall(r"\d+", clean)
-        return ("Yes", float(m[0]) if m else np.nan)
+    m = re.search(r"(\d+)", s)
+    dose = float(m.group(1)) if m else 0.0
+    if s.startswith("n") or dose == 0:
+        return ("No", dose)
+    if dose >= 1:
+        return ("Yes", dose)
     return ("Unknown", np.nan)
 
 
@@ -156,9 +159,9 @@ def group_ct(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if re.search(r"y|yes|positive|opa", s):
+    if re.search(r"y|yes|opa|ggo|infilt", s):
         return "Yes"
-    if re.search(r"n|no|normal|neg", s):
+    if re.search(r"n|no|normal", s):
         return "No"
     return "Unknown"
 
@@ -186,10 +189,16 @@ def group_variant(x):
         return "BQ.1.x"
     if re.search(r"BA\.?5", s):
         return "BA.5.x"
+    if re.search(r"BA\.?4", s):
+        return "BA.4.x"
     if re.search(r"BA\.?2", s):
         return "BA.2.x"
     if re.search(r"BA\.?1", s):
         return "BA.1.x"
+    if re.search(r"XBB", s):
+        return "XBB.x"
+    if re.search(r"JN", s):
+        return "JN.x"
     return "Other"
 
 
@@ -213,14 +222,12 @@ df["survival"] = df[col_surv].map(flag_survival)
 
 def group_adv(a, t):
     a_s = str(a).lower().strip()
-    t_s = str(t).lower().strip()
-    if not a_s:
-        a_s = "y" if t_s else ""
+    t_s = str(t).lower()
     if a_s.startswith("y"):
-        if re.search("thrombocytopenia|platelet", t_s):
+        if "thrombocyt" in t_s:
             return "Thrombocytopenia"
         return "Other"
-    if a_s.startswith("n"):
+    if a_s.startswith("n") or a_s in {"none", ""}:
         return "None"
     return "Unknown"
 
@@ -250,9 +257,10 @@ def chi2_perm(series):
 
 
 def p_categorical(series):
-    if series.nunique() < 2 or df["therapy"].nunique() < 2:
+    mask = df["therapy"].isin(["Combination", "Monotherapy"])
+    if series[mask].nunique() < 2 or mask.sum() == 0:
         return np.nan
-    table = pd.crosstab(series, df["therapy"])
+    table = pd.crosstab(series[mask], df.loc[mask, "therapy"])
     exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
     if series.nunique() == 2:
         if (exp < 5).any():
@@ -282,11 +290,12 @@ def fmt_num(x, typ):
     return f"{int(x.median())} ({int(x.quantile(0.25))}-{int(x.quantile(0.75))})"
 
 
-def fmt_count(mask):
+def fmt_count(mask, denom=None):
     n = mask.sum()
-    if n == 0:
+    d = len(mask) if denom is None else denom
+    if d == 0:
         return "0 (0.0%)"
-    return f"{n} ({mask.mean() * 100:.1f}%)"
+    return f"{n} ({n / d * 100:.1f}%)"
 
 
 def unique_order(seq, order):
@@ -303,7 +312,7 @@ rows += ["Glucocorticoid use", "SARS-CoV-2 Vaccination", "Number of vaccine dose
 dose_order = ["0", "1-2", "3-4", "≥5"]
 rows += [f"  *{i}*" for i in unique_order(df["dose_group"].dropna().unique(), dose_order)]
 rows += ["Thoracic CT changes", "Duration of SARS-CoV-2 replication (days)", "SARS-CoV-2 genotype"]
-var_order = ["BA.1.x", "BA.2.x", "BA.5.x", "BQ.1.x", "Other"]
+var_order = ["BA.1.x", "BA.2.x", "BA.4.x", "BA.5.x", "BQ.1.x", "XBB.x", "JN.x", "Other"]
 rows += [f"  *{i}*" for i in unique_order(df["variant"].unique(), var_order)]
 rows += ["Prolonged viral shedding (≥14 days)", "Survival", "Adverse events"]
 ae_order = ["None", "Thrombocytopenia", "Other"]
@@ -324,11 +333,9 @@ for g in groups:
     out.at["Age", g] = fmt_num(d[col_age], mode_age)
 
 female = df[col_sex].map(is_female)
-mask_comb = (df["therapy"] == "Combination") & female
-mask_mono = (df["therapy"] == "Monotherapy") & female
-out.at["Sex (female)", "Combination"] = fmt_count(mask_comb)
-out.at["Sex (female)", "Monotherapy"] = fmt_count(mask_mono)
-out.at["Sex (female)", "Total"] = fmt_count(female)
+for g in groups:
+    d = df if g == "Total" else df[df["therapy"] == g]
+    out.at["Sex (female)", g] = fmt_count(female.loc[d.index].fillna(False))
 p_store["Sex (female)"] = p_categorical(female)
 
 for g in groups:

@@ -20,7 +20,7 @@ def test_columns():
 def test_n_row():
     n_row = out.loc["N="]
     assert n_row["Total"] == len(tbl.df)
-    assert n_row["Combination"] + n_row["Monotherapy"] == len(tbl.df)
+    assert n_row["Combination"] + n_row["Monotherapy"] <= len(tbl.df)
 
 
 def test_rows():
