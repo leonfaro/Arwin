@@ -126,8 +126,9 @@ def parse_vacc(x):
     if re.search(r"^(n|no)", s):
         return ("No", 0.0)
     if re.search(r"^(y|yes|vacc)", s):
-        m = re.search(r"(\d+)", s)
-        return ("Yes", float(m.group(1)) if m else np.nan)
+        clean = re.sub(r"[^0-9]", " ", s)
+        m = re.findall(r"\d+", clean)
+        return ("Yes", float(m[0]) if m else np.nan)
     return ("Unknown", np.nan)
 
 
