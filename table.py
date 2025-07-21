@@ -2,18 +2,12 @@ import pandas as pd
 import numpy as np
 from scipy.stats import fisher_exact, chi2_contingency, mannwhitneyu, shapiro, ttest_ind
 from statsmodels.stats.multitest import multipletests
+import re
 
 xls = pd.ExcelFile("Data.xlsx")
-relevant = [s for s in xls.sheet_names if "information" not in s.lower()]
-frames = []
-for s in relevant:
-    f = pd.read_excel(xls, s)
-    f["source_sheet"] = s
-    frames.append(f)
-if len(frames) >= 3:
-    df = pd.concat(frames, ignore_index=True)
-else:
-    df = frames[0]
+relevant = [s for s in xls.sheet_names if re.search("combination|monotherapy", s, re.I)]
+frames = [pd.read_excel(xls, s).assign(source_sheet=s) for s in relevant]
+df = pd.concat(frames, ignore_index=True)
 
 
 def find_col(df, *keywords):
@@ -104,6 +98,15 @@ def group_immuno_detail(x):
 df["immuno_detail"] = df[col_base].map(group_immuno_detail)
 df["immuno3"] = df["immuno_detail"].map(lambda x: "Anti-CD-20" if x ==
                                         "Anti-CD-20" else ("None" if x == "None" else "Other"))
+
+
+def is_female(x):
+    s = str(x).lower().strip()
+    if s in {"f", "female", "w", "weiblich", "1"}:
+        return True
+    if s in {"m", "male", "0", "mann", "männlich"}:
+        return False
+    return np.nan
 
 
 def flag_gc(x):
@@ -307,12 +310,13 @@ for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
     out.at["Age", g] = fmt_num(d[col_age], mode_age)
 
-mask_comb = (df["therapy"] == "Combination") & (df[col_sex].str.lower().str.startswith("f"))
-mask_mono = (df["therapy"] == "Monotherapy") & (df[col_sex].str.lower().str.startswith("f"))
+female = df[col_sex].map(is_female)
+mask_comb = (df["therapy"] == "Combination") & female
+mask_mono = (df["therapy"] == "Monotherapy") & female
 out.at["Sex (female)", "Combination"] = fmt_count(mask_comb)
 out.at["Sex (female)", "Monotherapy"] = fmt_count(mask_mono)
-out.at["Sex (female)", "Total"] = fmt_count(df[col_sex].str.lower().str.startswith("f"))
-p_store["Sex (female)"] = p_categorical(df[col_sex].str.lower().str.startswith("f"))
+out.at["Sex (female)", "Total"] = fmt_count(female)
+p_store["Sex (female)"] = p_categorical(female)
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
