@@ -43,7 +43,7 @@ col_age = find_col(df, "age")
 col_disease = find_col(df, "baseline disease cohort")
 col_base = find_col(df, "baseline therapy")
 col_vacc = find_col(df, "vaccination")
-col_gen = find_col(df, "sars-cov-2 genotype")
+col_gen = find_col(df, "sars-cov-2", "genotype")
 col_ct = find_col(df, "ct", "lung")
 col_rep = find_col(df, "replication")
 col_gc = find_col(df, "glucocorticosteroid")
@@ -163,35 +163,46 @@ def group_ct(x):
 
 
 df["ct"] = df[col_ct].map(group_ct)
-df["rep"] = pd.to_numeric(df[col_rep], errors="coerce")
+
+
+def parse_rep(x):
+    if isinstance(x, (int, float)) and not pd.isna(x):
+        return float(x)
+    if not isinstance(x, str):
+        return np.nan
+    m = re.search(r"(\d+)", x)
+    return float(m.group(1)) if m else np.nan
+
+
+df["rep"] = df[col_rep].map(parse_rep)
 
 
 def group_variant(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.upper().strip()
-    if s.startswith("BQ.1"):
+    if re.search(r"BQ\.?1", s):
         return "BQ.1.x"
-    if s.startswith("BA.5"):
+    if re.search(r"BA\.?5", s):
         return "BA.5.x"
-    if s.startswith("BA.2"):
+    if re.search(r"BA\.?2", s):
         return "BA.2.x"
-    if s.startswith("BA.1"):
+    if re.search(r"BA\.?1", s):
         return "BA.1.x"
     return "Other"
 
 
 df["variant"] = df[col_gen].map(group_variant)
-df["prolonged"] = df["rep"] >= 14
+df["prolonged"] = df["rep"].map(lambda x: np.nan if pd.isna(x) else x >= 14)
 
 
 def flag_survival(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower().strip()
-    if s.startswith("y"):
+    if re.search(r"^(alive|yes|1)", s):
         return "Yes"
-    if s.startswith("n"):
+    if re.search(r"^(dead|no|0)", s):
         return "No"
     return "Unknown"
 
@@ -200,12 +211,15 @@ df["survival"] = df[col_surv].map(flag_survival)
 
 
 def group_adv(a, t):
-    if isinstance(a, str) and a.lower().startswith("y"):
-        t = str(t).lower()
-        if "thrombocytopenia" in t:
+    a_s = str(a).lower().strip()
+    t_s = str(t).lower().strip()
+    if not a_s:
+        a_s = "y" if t_s else ""
+    if a_s.startswith("y"):
+        if re.search("thrombocytopenia|platelet", t_s):
             return "Thrombocytopenia"
         return "Other"
-    if isinstance(a, str) and a.lower().startswith("n"):
+    if a_s.startswith("n"):
         return "None"
     return "Unknown"
 
