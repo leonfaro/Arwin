@@ -4,9 +4,8 @@ from scipy.stats import fisher_exact, chi2_contingency, mannwhitneyu, shapiro, t
 from statsmodels.stats.multitest import multipletests
 
 df = pd.read_excel("Data.xlsx", sheet_name=0)
-therapy = (
-    df[df.columns[17]].str.strip().str[0].map({"c": "Combination", "m": "Monotherapy"})
-)
+col = "any previous NMV-r treatment …"
+therapy = df[col].str.strip().str[0].map({"c": "Combination", "m": "Monotherapy"})
 df["therapy"] = therapy
 
 

@@ -16,3 +16,8 @@ def test_index_name():
 def test_rows():
     assert "Age" in out.index
     assert "Prolonged viral shedding (\u2265 14 days)" in out.index
+
+
+def test_column_access():
+    src = open("table.py").read()
+    assert "any previous NMV-r treatment …" in src
