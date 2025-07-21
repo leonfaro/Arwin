@@ -277,7 +277,7 @@ def unique_order(seq, order):
     return [i for i in order if i in seq]
 
 
-rows = ["Age", "Sex (female)", "Disease group"]
+rows = ["N=", "Age", "Sex (female)", "Disease group"]
 disease_order = ["Haematological malignancy", "Autoimmune disease", "Transplantation", "Mixed"]
 rows += [f"  *{i}*" for i in unique_order(df["disease"].unique(), disease_order)]
 rows += ["Immunosuppressive treatment"]
@@ -296,7 +296,9 @@ rows += [f"  *{i}*" for i in unique_order(df["adverse"].unique(), ae_order)]
 groups = ["Total", "Combination", "Monotherapy"]
 cols = groups + ["p-Value", "q-Value", "Sig"]
 out = pd.DataFrame(index=rows, columns=cols)
-out.index.name = "N="
+out.loc["N=", "Total"] = len(df)
+out.loc["N=", "Combination"] = (df["therapy"] == "Combination").sum()
+out.loc["N=", "Monotherapy"] = (df["therapy"] == "Monotherapy").sum()
 
 p_store = {}
 
