@@ -13,16 +13,26 @@ def group_disease(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.lower()
-    if "m" in s:
-        return "Haematological malignancy"
-    if "t" in s:
-        return "Transplantation"
-    if "a" in s:
+    a = "a" in s
+    m = "m" in s
+    t = "t" in s
+    n = a + m + t
+    if n > 1:
+        return "Mixed"
+    if a:
         return "Autoimmune disease"
+    if m:
+        return "Haematological malignancy"
+    if t:
+        return "Transplantation"
     return "Unknown"
 
 
 df["disease"] = df[df.columns[2]].map(group_disease)
+mixed_count = (df["disease"] == "Mixed").sum()
+use_mixed = mixed_count >= 5
+if not use_mixed:
+    df.loc[df["disease"] == "Mixed", "disease"] = "Transplantation"
 
 
 def group_immuno_detail(x):
@@ -44,10 +54,6 @@ def group_immuno_detail(x):
     )
     if any(i in s for i in k):
         return "Anti-CD-20"
-    if "car-t" in s or "cart" in s:
-        return "CAR-T"
-    if "hsct" in s or "asct" in s:
-        return "HSCT"
     if "none" in s or "no is" in s:
         return "None"
     return "Other"
@@ -57,9 +63,6 @@ df["immuno_detail"] = df["baseline therapy"].map(group_immuno_detail)
 df["immuno3"] = df["immuno_detail"].map(
     lambda x: "Anti-CD-20" if x == "Anti-CD-20" else ("None" if x == "None" else "Other")
 )
-counts_immuno = df["immuno_detail"].value_counts()
-use_cart = counts_immuno.get("CAR-T", 0) >= 5
-use_hsct = counts_immuno.get("HSCT", 0) >= 5
 
 
 def flag_gc(x):
@@ -91,6 +94,21 @@ df["vacc"] = vacc.map(lambda x: x[0])
 df["doses"] = vacc.map(lambda x: x[1])
 
 
+def group_dose(x):
+    if pd.isna(x):
+        return np.nan
+    if x >= 5:
+        return "≥5"
+    if x >= 3:
+        return "3-4"
+    if x >= 1:
+        return "1-2"
+    return "0"
+
+
+df["dose_group"] = df["doses"].map(group_dose)
+
+
 def group_ct(x):
     if not isinstance(x, str):
         return "Unknown"
@@ -110,14 +128,14 @@ def group_variant(x):
     if not isinstance(x, str):
         return "Unknown"
     s = x.upper().strip()
-    if s.startswith(
-        ("BA.5", "BF", "BQ", "BE", "EG", "HH", "JG", "XBF", "XCH", "FR", "XBB", "XAY")
-    ):
-        return "BA.5-derived Omicron subvariant"
-    if s.startswith(("BA.2", "CH")):
-        return "BA.2-derived Omicron subvariant"
+    if s.startswith("BQ.1"):
+        return "BQ.1.x"
+    if s.startswith("BA.5"):
+        return "BA.5.x"
+    if s.startswith("BA.2"):
+        return "BA.2.x"
     if s.startswith("BA.1"):
-        return "BA.1-derived Omicron subvariant"
+        return "BA.1.x"
     return "Other"
 
 
@@ -226,26 +244,29 @@ rows = [
     "  *Haematological malignancy*",
     "  *Autoimmune disease*",
     "  *Transplantation*",
+]
+if use_mixed:
+    rows.append("  *Mixed*")
+rows += [
     "Immunosuppressive treatment",
     "  *Anti-CD-20*",
     "  *Other*",
-    "  *None (IS)*",
-]
-if use_cart:
-    rows.append("  *CAR-T*")
-if use_hsct:
-    rows.append("  *HSCT*")
-rows += [
+    "  *None*",
     "Glucocorticoid use",
     "SARS-CoV-2 Vaccination",
     "Number of vaccine doses",
+    "  *0*",
+    "  *1-2*",
+    "  *3-4*",
+    "  *≥5*",
     "Thoracic CT changes",
     "Duration of SARS-CoV-2 replication (days)",
     "SARS-CoV-2 genotype",
-    "  *BA.5-derived Omicron subvariant*",
-    "  *BA.2-derived Omicron subvariant*",
-    "  *BA.1-derived Omicron subvariant*",
-    "  *Other variant*",
+    "  *BA.1.x*",
+    "  *BA.2.x*",
+    "  *BA.5.x*",
+    "  *BQ.1.x*",
+    "  *Other*",
     "Prolonged viral shedding (≥14 days)",
     "Survival",
     "Adverse events",
@@ -285,6 +306,8 @@ for g in groups:
         d["disease"] == "Autoimmune disease"
     )
     out.at["  *Transplantation*", g] = fmt_count(d["disease"] == "Transplantation")
+    if use_mixed:
+        out.at["  *Mixed*", g] = fmt_count(d["disease"] == "Mixed")
 out.at["Disease group", "Total"] = ""
 out.at["Disease group", "Combination"] = ""
 out.at["Disease group", "Monotherapy"] = ""
@@ -294,37 +317,21 @@ p_store["  *Haematological malignancy*"] = p_categorical(
 )
 p_store["  *Autoimmune disease*"] = p_categorical(df["disease"] == "Autoimmune disease")
 p_store["  *Transplantation*"] = p_categorical(df["disease"] == "Transplantation")
+if use_mixed:
+    p_store["  *Mixed*"] = p_categorical(df["disease"] == "Mixed")
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
     out.at["  *Anti-CD-20*", g] = fmt_count(d["immuno_detail"] == "Anti-CD-20")
-    mask_o = d["immuno_detail"] == "Other"
-    if not use_cart:
-        mask_o |= d["immuno_detail"] == "CAR-T"
-    if not use_hsct:
-        mask_o |= d["immuno_detail"] == "HSCT"
-    out.at["  *Other*", g] = fmt_count(mask_o)
-    out.at["  *None (IS)*", g] = fmt_count(d["immuno_detail"] == "None")
-    if use_cart:
-        out.at["  *CAR-T*", g] = fmt_count(d["immuno_detail"] == "CAR-T")
-    if use_hsct:
-        out.at["  *HSCT*", g] = fmt_count(d["immuno_detail"] == "HSCT")
+    out.at["  *Other*", g] = fmt_count(d["immuno_detail"] == "Other")
+    out.at["  *None*", g] = fmt_count(d["immuno_detail"] == "None")
 out.at["Immunosuppressive treatment", "Total"] = ""
 out.at["Immunosuppressive treatment", "Combination"] = ""
 out.at["Immunosuppressive treatment", "Monotherapy"] = ""
 p_store["Immunosuppressive treatment"] = p_categorical(df["immuno3"])
-mask_other_all = df["immuno_detail"] == "Other"
-if not use_cart:
-    mask_other_all |= df["immuno_detail"] == "CAR-T"
-if not use_hsct:
-    mask_other_all |= df["immuno_detail"] == "HSCT"
 p_store["  *Anti-CD-20*"] = p_categorical(df["immuno_detail"] == "Anti-CD-20")
-p_store["  *Other*"] = p_categorical(mask_other_all)
-p_store["  *None (IS)*"] = p_categorical(df["immuno_detail"] == "None")
-if use_cart:
-    p_store["  *CAR-T*"] = p_categorical(df["immuno_detail"] == "CAR-T")
-if use_hsct:
-    p_store["  *HSCT*"] = p_categorical(df["immuno_detail"] == "HSCT")
+p_store["  *Other*"] = p_categorical(df["immuno_detail"] == "Other")
+p_store["  *None*"] = p_categorical(df["immuno_detail"] == "None")
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
@@ -334,12 +341,20 @@ p_store["Glucocorticoid use"] = p_categorical(df["gc"] == "Yes")
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
     out.at["SARS-CoV-2 Vaccination", g] = fmt_count(d["vacc"] == "Yes")
-out["Number of vaccine doses"] = ""
+for col in groups:
+    out.at["Number of vaccine doses", col] = ""
 p_store["SARS-CoV-2 Vaccination"] = p_categorical(df["vacc"] == "Yes")
-p_store["Number of vaccine doses"], mode_dose = p_continuous(df["doses"])
+p_store["Number of vaccine doses"] = p_categorical(df["dose_group"])
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
-    out.at["Number of vaccine doses", g] = fmt_num(d["doses"].dropna(), mode_dose)
+    out.at["  *0*", g] = fmt_count(d["dose_group"] == "0")
+    out.at["  *1-2*", g] = fmt_count(d["dose_group"] == "1-2")
+    out.at["  *3-4*", g] = fmt_count(d["dose_group"] == "3-4")
+    out.at["  *≥5*", g] = fmt_count(d["dose_group"] == "≥5")
+p_store["  *0*"] = p_categorical(df["dose_group"] == "0")
+p_store["  *1-2*"] = p_categorical(df["dose_group"] == "1-2")
+p_store["  *3-4*"] = p_categorical(df["dose_group"] == "3-4")
+p_store["  *≥5*"] = p_categorical(df["dose_group"] == "≥5")
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
@@ -353,30 +368,20 @@ for g in groups:
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
-    out.at["  *BA.5-derived Omicron subvariant*", g] = fmt_count(
-        d["variant"] == "BA.5-derived Omicron subvariant"
-    )
-    out.at["  *BA.2-derived Omicron subvariant*", g] = fmt_count(
-        d["variant"] == "BA.2-derived Omicron subvariant"
-    )
-    out.at["  *BA.1-derived Omicron subvariant*", g] = fmt_count(
-        d["variant"] == "BA.1-derived Omicron subvariant"
-    )
-    out.at["  *Other variant*", g] = fmt_count(d["variant"] == "Other")
+    out.at["  *BA.1.x*", g] = fmt_count(d["variant"] == "BA.1.x")
+    out.at["  *BA.2.x*", g] = fmt_count(d["variant"] == "BA.2.x")
+    out.at["  *BA.5.x*", g] = fmt_count(d["variant"] == "BA.5.x")
+    out.at["  *BQ.1.x*", g] = fmt_count(d["variant"] == "BQ.1.x")
+    out.at["  *Other*", g] = fmt_count(d["variant"] == "Other")
 out.at["SARS-CoV-2 genotype", "Total"] = ""
 out.at["SARS-CoV-2 genotype", "Combination"] = ""
 out.at["SARS-CoV-2 genotype", "Monotherapy"] = ""
 p_store["SARS-CoV-2 genotype"] = p_categorical(df["variant"])
-p_store["  *BA.5-derived Omicron subvariant*"] = p_categorical(
-    df["variant"] == "BA.5-derived Omicron subvariant"
-)
-p_store["  *BA.2-derived Omicron subvariant*"] = p_categorical(
-    df["variant"] == "BA.2-derived Omicron subvariant"
-)
-p_store["  *BA.1-derived Omicron subvariant*"] = p_categorical(
-    df["variant"] == "BA.1-derived Omicron subvariant"
-)
-p_store["  *Other variant*"] = p_categorical(df["variant"] == "Other")
+p_store["  *BA.1.x*"] = p_categorical(df["variant"] == "BA.1.x")
+p_store["  *BA.2.x*"] = p_categorical(df["variant"] == "BA.2.x")
+p_store["  *BA.5.x*"] = p_categorical(df["variant"] == "BA.5.x")
+p_store["  *BQ.1.x*"] = p_categorical(df["variant"] == "BQ.1.x")
+p_store["  *Other*"] = p_categorical(df["variant"] == "Other")
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
@@ -427,4 +432,3 @@ out["Sig"] = qs.apply(
 if __name__ == "__main__":
     print(out.fillna(""))
     print("Anti-CD-20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.")
-    print(counts_immuno.to_string())
