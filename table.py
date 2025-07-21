@@ -26,20 +26,41 @@ def group_disease(x):
 df["disease"] = df[df.columns[2]].map(group_disease)
 
 
-def group_immuno(x):
-    if not isinstance(x, str):
-        return "Unknown"
+def group_immuno_detail(x):
+    if not isinstance(x, str) or not x.strip():
+        return "None"
     s = x.lower()
-    if "car-t" in s:
-        return "CAR-T"
-    if "ritux" in s or "rtx" in s or "cd-20" in s:
+    k = (
+        "ritux",
+        "rtx",
+        "obinutuzumab",
+        "obinu",
+        "obi",
+        "ocrelizumab",
+        "ocre",
+        "ocr",
+        "mosunetuzumab",
+        "mosu",
+        "mos",
+    )
+    if any(i in s for i in k):
         return "Anti-CD-20"
-    if "none" in s:
+    if "car-t" in s or "cart" in s:
+        return "CAR-T"
+    if "hsct" in s or "asct" in s:
+        return "HSCT"
+    if "none" in s or "no is" in s:
         return "None"
     return "Other"
 
 
-df["immuno"] = df["baseline therapy"].map(group_immuno)
+df["immuno_detail"] = df["baseline therapy"].map(group_immuno_detail)
+df["immuno3"] = df["immuno_detail"].map(
+    lambda x: "Anti-CD-20" if x == "Anti-CD-20" else ("None" if x == "None" else "Other")
+)
+counts_immuno = df["immuno_detail"].value_counts()
+use_cart = counts_immuno.get("CAR-T", 0) >= 5
+use_hsct = counts_immuno.get("HSCT", 0) >= 5
 
 
 def flag_gc(x):
@@ -207,9 +228,15 @@ rows = [
     "  *Autoimmune disease*",
     "  *Transplantation*",
     "Immunosuppressive treatment",
-    "  *None (IS)*",
     "  *Anti-CD-20*",
-    "  *CAR-T*",
+    "  *Other*",
+    "  *None (IS)*",
+]
+if use_cart:
+    rows.append("  *CAR-T*")
+if use_hsct:
+    rows.append("  *HSCT*")
+rows += [
     "Glucocorticoid use",
     "SARS-CoV-2 Vaccination",
     "Number of vaccine doses",
@@ -271,16 +298,34 @@ p_store["  *Transplantation*"] = p_categorical(df["disease"] == "Transplantation
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
-    out.at["  *None (IS)*", g] = fmt_count(d["immuno"] == "None")
-    out.at["  *Anti-CD-20*", g] = fmt_count(d["immuno"] == "Anti-CD-20")
-    out.at["  *CAR-T*", g] = fmt_count(d["immuno"] == "CAR-T")
+    out.at["  *Anti-CD-20*", g] = fmt_count(d["immuno_detail"] == "Anti-CD-20")
+    mask_o = d["immuno_detail"] == "Other"
+    if not use_cart:
+        mask_o |= d["immuno_detail"] == "CAR-T"
+    if not use_hsct:
+        mask_o |= d["immuno_detail"] == "HSCT"
+    out.at["  *Other*", g] = fmt_count(mask_o)
+    out.at["  *None (IS)*", g] = fmt_count(d["immuno_detail"] == "None")
+    if use_cart:
+        out.at["  *CAR-T*", g] = fmt_count(d["immuno_detail"] == "CAR-T")
+    if use_hsct:
+        out.at["  *HSCT*", g] = fmt_count(d["immuno_detail"] == "HSCT")
 out.at["Immunosuppressive treatment", "Total"] = ""
 out.at["Immunosuppressive treatment", "Combination"] = ""
 out.at["Immunosuppressive treatment", "Monotherapy"] = ""
-p_store["Immunosuppressive treatment"] = p_categorical(df["immuno"])
-p_store["  *None (IS)*"] = p_categorical(df["immuno"] == "None")
-p_store["  *Anti-CD-20*"] = p_categorical(df["immuno"] == "Anti-CD-20")
-p_store["  *CAR-T*"] = p_categorical(df["immuno"] == "CAR-T")
+p_store["Immunosuppressive treatment"] = p_categorical(df["immuno3"])
+mask_other_all = df["immuno_detail"] == "Other"
+if not use_cart:
+    mask_other_all |= df["immuno_detail"] == "CAR-T"
+if not use_hsct:
+    mask_other_all |= df["immuno_detail"] == "HSCT"
+p_store["  *Anti-CD-20*"] = p_categorical(df["immuno_detail"] == "Anti-CD-20")
+p_store["  *Other*"] = p_categorical(mask_other_all)
+p_store["  *None (IS)*"] = p_categorical(df["immuno_detail"] == "None")
+if use_cart:
+    p_store["  *CAR-T*"] = p_categorical(df["immuno_detail"] == "CAR-T")
+if use_hsct:
+    p_store["  *HSCT*"] = p_categorical(df["immuno_detail"] == "HSCT")
 
 for g in groups:
     d = df if g == "Total" else df[df["therapy"] == g]
@@ -382,3 +427,5 @@ out["Sig"] = qs.apply(
 
 if __name__ == "__main__":
     print(out.fillna(""))
+    print("Anti-CD-20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.")
+    print(counts_immuno.to_string())
