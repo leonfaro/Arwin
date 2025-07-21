@@ -4,10 +4,33 @@ from scipy.stats import fisher_exact, chi2_contingency, mannwhitneyu, shapiro, t
 from statsmodels.stats.multitest import multipletests
 import re
 
-xls = pd.ExcelFile("Data.xlsx")
-relevant = [s for s in xls.sheet_names if re.search("combination|monotherapy|total", s, re.I)]
-frames = [pd.read_excel(xls, s).assign(source_sheet=s) for s in relevant]
-df = pd.concat(frames, ignore_index=True)
+
+def load_file(label, path):
+    df_tmp = pd.read_excel(path)
+    df_tmp["group"] = label
+    df_tmp["source_sheet"] = label
+    col = None
+    for c in df_tmp.columns:
+        if str(c).lower().startswith("2nd line treatment form of therapy"):
+            col = c
+            break
+    if col is not None:
+        df_tmp["therapy"] = (
+            df_tmp[col]
+            .str.lower()
+            .str[0]
+            .map({"c": "Combination", "m": "Monotherapy"})
+            .fillna("Unknown")
+        )
+    else:
+        df_tmp["therapy"] = label
+    return df_tmp
+
+
+df_total = load_file("Total", "Total.xlsx")
+df_combo = load_file("Combination", "Combination.xlsx")
+df_mono = load_file("Monotherapy", "Monotherapy.xlsx")
+df = df_total.copy()
 
 
 def find_col(df, *keywords):
@@ -78,9 +101,6 @@ def group_disease(x):
     return "Unknown"
 
 
-df["disease"] = df[col_disease].map(group_disease)
-
-
 def group_immuno_detail(x):
     if not isinstance(x, str) or not x.strip():
         return "None"
@@ -90,11 +110,6 @@ def group_immuno_detail(x):
     if "none" in s or "no is" in s:
         return "None"
     return "Other"
-
-
-df["immuno_detail"] = df[col_base].map(group_immuno_detail)
-df["immuno3"] = df["immuno_detail"].map(lambda x: "Anti-CD-20" if x ==
-                                        "Anti-CD-20" else ("None" if x == "None" else "Other"))
 
 
 def is_female(x):
@@ -119,9 +134,6 @@ def flag_gc(x):
     return "Yes"
 
 
-df["gc"] = df[col_gc].map(flag_gc)
-
-
 def parse_vacc(x):
     if not isinstance(x, str):
         return ("Unknown", np.nan)
@@ -133,11 +145,6 @@ def parse_vacc(x):
     if dose >= 1:
         return ("Yes", dose)
     return ("Unknown", np.nan)
-
-
-vacc = df[col_vacc].map(parse_vacc)
-df["vacc"] = vacc.map(lambda x: x[0])
-df["doses"] = vacc.map(lambda x: x[1])
 
 
 def group_dose(x):
@@ -152,9 +159,6 @@ def group_dose(x):
     return "0"
 
 
-df["dose_group"] = df["doses"].map(group_dose)
-
-
 def group_ct(x):
     if not isinstance(x, str):
         return "Unknown"
@@ -166,9 +170,6 @@ def group_ct(x):
     return "Unknown"
 
 
-df["ct"] = df[col_ct].map(group_ct)
-
-
 def parse_rep(x):
     if isinstance(x, (int, float)) and not pd.isna(x):
         return float(x)
@@ -176,9 +177,6 @@ def parse_rep(x):
         return np.nan
     m = re.search(r"(\d+)", x)
     return float(m.group(1)) if m else np.nan
-
-
-df["rep"] = df[col_rep].map(parse_rep)
 
 
 def group_variant(x):
@@ -202,10 +200,6 @@ def group_variant(x):
     return "Other"
 
 
-df["variant"] = df[col_gen].map(group_variant)
-df["prolonged"] = df["rep"].map(lambda x: np.nan if pd.isna(x) else x >= 14)
-
-
 def flag_survival(x):
     if not isinstance(x, str):
         return "Unknown"
@@ -215,9 +209,6 @@ def flag_survival(x):
     if re.search(r"^(dead|no|0)", s):
         return "No"
     return "Unknown"
-
-
-df["survival"] = df[col_surv].map(flag_survival)
 
 
 def group_adv(a, t):
@@ -232,15 +223,40 @@ def group_adv(a, t):
     return "Unknown"
 
 
-df["adverse"] = df.apply(lambda r: group_adv(r[col_adv], r[col_adv_type]), axis=1)
+def transform(d):
+    d["disease"] = d[col_disease].map(group_disease)
+    d["immuno_detail"] = d[col_base].map(group_immuno_detail)
+    d["immuno3"] = d["immuno_detail"].map(
+        lambda x: "Anti-CD-20" if x == "Anti-CD-20" else ("None" if x == "None" else "Other")
+    )
+    d["gc"] = d[col_gc].map(flag_gc)
+    vacc = d[col_vacc].map(parse_vacc)
+    d["vacc"] = vacc.map(lambda x: x[0])
+    d["doses"] = vacc.map(lambda x: x[1])
+    d["dose_group"] = d["doses"].map(group_dose)
+    d["ct"] = d[col_ct].map(group_ct)
+    d["rep"] = d[col_rep].map(parse_rep)
+    d["variant"] = d[col_gen].map(group_variant)
+    d["prolonged"] = d["rep"].map(lambda x: np.nan if pd.isna(x) else x >= 14)
+    d["survival"] = d[col_surv].map(flag_survival)
+    d["adverse"] = d.apply(lambda r: group_adv(r[col_adv], r[col_adv_type]), axis=1)
+    return d
+
+
+df_total = transform(df_total)
+df_combo = transform(df_combo)
+df_mono = transform(df_mono)
+df_compare = pd.concat([df_combo, df_mono], ignore_index=True)
+group_map = {"Total": df_total, "Combination": df_combo, "Monotherapy": df_mono}
+df = df_total
 
 
 def chi2_perm(series):
     cats = pd.Categorical(series)
-    obs_tab = pd.crosstab(cats, df["therapy"])
+    obs_tab = pd.crosstab(cats, df_compare["therapy"])
     obs = chi2_contingency(obs_tab, correction=False)[0]
     codes = cats.codes
-    labels = df["therapy"].values.copy()
+    labels = df_compare["therapy"].values.copy()
     rng = np.random.default_rng(0)
     cnt = 0
     for _ in range(10000):
@@ -257,10 +273,10 @@ def chi2_perm(series):
 
 
 def p_categorical(series):
-    mask = df["therapy"].isin(["Combination", "Monotherapy"])
+    mask = df_compare["therapy"].isin(["Combination", "Monotherapy"])
     if series[mask].nunique() < 2 or mask.sum() == 0:
         return np.nan
-    table = pd.crosstab(series[mask], df.loc[mask, "therapy"])
+    table = pd.crosstab(series[mask], df_compare.loc[mask, "therapy"])
     exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
     if series.nunique() == 2:
         if (exp < 5).any():
@@ -272,8 +288,8 @@ def p_categorical(series):
 
 
 def p_continuous(series):
-    g1 = series[df["therapy"] == "Combination"].dropna()
-    g2 = series[df["therapy"] == "Monotherapy"].dropna()
+    g1 = series[df_compare["therapy"] == "Combination"].dropna()
+    g2 = series[df_compare["therapy"] == "Monotherapy"].dropna()
     if g1.empty or g2.empty:
         return np.nan, "median"
     n1 = len(g1)
@@ -321,107 +337,107 @@ rows += [f"  *{i}*" for i in unique_order(df["adverse"].unique(), ae_order)]
 groups = ["Total", "Combination", "Monotherapy"]
 cols = groups + ["p-Value", "q-Value", "Sig"]
 out = pd.DataFrame(index=rows, columns=cols)
-out.loc["N=", "Total"] = len(df)
-out.loc["N=", "Combination"] = (df["therapy"] == "Combination").sum()
-out.loc["N=", "Monotherapy"] = (df["therapy"] == "Monotherapy").sum()
+out.loc["N=", "Total"] = len(df_total)
+out.loc["N=", "Combination"] = len(df_combo)
+out.loc["N=", "Monotherapy"] = len(df_mono)
 
 p_store = {}
 
-p_store["Age"], mode_age = p_continuous(df[col_age])
+p_store["Age"], mode_age = p_continuous(df_compare[col_age])
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Age", g] = fmt_num(d[col_age], mode_age)
 
 female = df[col_sex].map(is_female)
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Sex (female)", g] = fmt_count(female.loc[d.index].fillna(False))
-p_store["Sex (female)"] = p_categorical(female)
+p_store["Sex (female)"] = p_categorical(female.loc[df_compare.index])
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     for cat in unique_order(df["disease"].unique(), disease_order):
         out.at[f"  *{cat}*", g] = fmt_count(d["disease"] == cat)
 out.at["Disease group", "Total"] = ""
 out.at["Disease group", "Combination"] = ""
 out.at["Disease group", "Monotherapy"] = ""
-p_store["Disease group"] = p_categorical(df["disease"])
+p_store["Disease group"] = p_categorical(df_compare["disease"])
 for cat in unique_order(df["disease"].unique(), disease_order):
-    p_store[f"  *{cat}*"] = p_categorical(df["disease"] == cat)
+    p_store[f"  *{cat}*"] = p_categorical((df_compare["disease"] == cat))
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     for cat in unique_order(df["immuno_detail"].unique(), immuno_order):
         out.at[f"  *{cat}*", g] = fmt_count(d["immuno_detail"] == cat)
 out.at["Immunosuppressive treatment", "Total"] = ""
 out.at["Immunosuppressive treatment", "Combination"] = ""
 out.at["Immunosuppressive treatment", "Monotherapy"] = ""
-p_store["Immunosuppressive treatment"] = p_categorical(df["immuno3"])
+p_store["Immunosuppressive treatment"] = p_categorical(df_compare["immuno3"])
 for cat in unique_order(df["immuno_detail"].unique(), immuno_order):
-    p_store[f"  *{cat}*"] = p_categorical(df["immuno_detail"] == cat)
+    p_store[f"  *{cat}*"] = p_categorical(df_compare["immuno_detail"] == cat)
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Glucocorticoid use", g] = fmt_count(d["gc"] == "Yes")
-p_store["Glucocorticoid use"] = p_categorical(df["gc"] == "Yes")
+p_store["Glucocorticoid use"] = p_categorical(df_compare["gc"] == "Yes")
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["SARS-CoV-2 Vaccination", g] = fmt_count(d["vacc"] == "Yes")
 for g in groups:
     out.at["Number of vaccine doses", g] = ""
-p_store["SARS-CoV-2 Vaccination"] = p_categorical(df["vacc"] == "Yes")
-p_store["Number of vaccine doses"] = p_categorical(df["dose_group"])
+p_store["SARS-CoV-2 Vaccination"] = p_categorical(df_compare["vacc"] == "Yes")
+p_store["Number of vaccine doses"] = p_categorical(df_compare["dose_group"])
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     for cat in unique_order(df["dose_group"].dropna().unique(), dose_order):
         out.at[f"  *{cat}*", g] = fmt_count(d["dose_group"] == cat)
 for cat in unique_order(df["dose_group"].dropna().unique(), dose_order):
-    p_store[f"  *{cat}*"] = p_categorical(df["dose_group"] == cat)
+    p_store[f"  *{cat}*"] = p_categorical(df_compare["dose_group"] == cat)
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Thoracic CT changes", g] = fmt_count(d["ct"] == "Yes")
-p_store["Thoracic CT changes"] = p_categorical(df["ct"] == "Yes")
+p_store["Thoracic CT changes"] = p_categorical(df_compare["ct"] == "Yes")
 
-p_store["Duration of SARS-CoV-2 replication (days)"], mode_rep = p_continuous(df["rep"])
+p_store["Duration of SARS-CoV-2 replication (days)"], mode_rep = p_continuous(df_compare["rep"])
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Duration of SARS-CoV-2 replication (days)", g] = fmt_num(d["rep"], mode_rep)
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     for cat in unique_order(df["variant"].unique(), var_order):
         out.at[f"  *{cat}*", g] = fmt_count(d["variant"] == cat)
 out.at["SARS-CoV-2 genotype", "Total"] = ""
 out.at["SARS-CoV-2 genotype", "Combination"] = ""
 out.at["SARS-CoV-2 genotype", "Monotherapy"] = ""
-p_store["SARS-CoV-2 genotype"] = p_categorical(df["variant"])
+p_store["SARS-CoV-2 genotype"] = p_categorical(df_compare["variant"])
 for cat in unique_order(df["variant"].unique(), var_order):
-    p_store[f"  *{cat}*"] = p_categorical(df["variant"] == cat)
+    p_store[f"  *{cat}*"] = p_categorical(df_compare["variant"] == cat)
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Prolonged viral shedding (≥14 days)", g] = fmt_count(d["prolonged"])
-p_store["Prolonged viral shedding (≥14 days)"] = p_categorical(df["prolonged"])
+p_store["Prolonged viral shedding (≥14 days)"] = p_categorical(df_compare["prolonged"])
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     out.at["Survival", g] = fmt_count(d["survival"] == "Yes")
-p_store["Survival"] = p_categorical(df["survival"] == "Yes")
+p_store["Survival"] = p_categorical(df_compare["survival"] == "Yes")
 
 for g in groups:
-    d = df if g == "Total" else df[df["therapy"] == g]
+    d = group_map[g]
     for cat in unique_order(df["adverse"].unique(), ae_order):
         name = "None (AE)" if cat == "None" else cat
         out.at[f"  *{name}*", g] = fmt_count(d["adverse"] == cat)
 out.at["Adverse events", "Total"] = ""
 out.at["Adverse events", "Combination"] = ""
 out.at["Adverse events", "Monotherapy"] = ""
-p_store["Adverse events"] = p_categorical(df["adverse"])
+p_store["Adverse events"] = p_categorical(df_compare["adverse"])
 for cat in unique_order(df["adverse"].unique(), ae_order):
     name = "None (AE)" if cat == "None" else cat
-    p_store[f"  *{name}*"] = p_categorical(df["adverse"] == cat)
+    p_store[f"  *{name}*"] = p_categorical(df_compare["adverse"] == cat)
 
 pvals = pd.Series(p_store)
 mask = pvals.notna()
