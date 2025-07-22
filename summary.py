@@ -4,6 +4,10 @@ from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, t
 from statsmodels.stats.multitest import multipletests
 import re
 
+FILES = {"mono": "Monotherapy.xlsx", "comb": "Combination.xlsx"}
+DF_mono = pd.read_excel(FILES["mono"])
+DF_comb = pd.read_excel(FILES["comb"])
+
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line NMV-r standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -91,47 +95,17 @@ def parse_ext(series: pd.Series):
     return days, courses
 
 
-def p_cat(series: pd.Series, labels: pd.Series) -> float:
-    ser = pd.Series(series).reset_index(drop=True)
-    lab = pd.Series(labels).reset_index(drop=True)
-    table = pd.crosstab(ser, lab)
-    exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
-    if series.nunique() == 2:
-        if (exp < 5).any():
-            return fisher_exact(table)[1]
-        return chi2_contingency(table, correction=False)[1]
+def chi_or_fisher(a11, a12, a21, a22):
+    exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
     if (exp < 5).any():
-        cats = pd.Categorical(series)
-        obs = chi2_contingency(pd.crosstab(cats, labels), correction=False)[0]
-        codes = cats.codes
-        labs = labels.values.copy()
-        rng = np.random.default_rng(0)
-        cnt = 0
-        for _ in range(10000):
-            rng.shuffle(labs)
-            perm = np.zeros((len(cats.categories), 2))
-            for i in range(len(cats.categories)):
-                mask = codes == i
-                perm[i, 0] = np.sum(labs[mask] == 'Combination')
-                perm[i, 1] = np.sum(labs[mask] == 'Monotherapy')
-            val = chi2_contingency(perm, correction=False)[0]
-            if val >= obs:
-                cnt += 1
-        return cnt / 10000
-    return chi2_contingency(table, correction=False)[1]
+        return fisher_exact([[a11, a12], [a21, a22]])[1]
+    return chi2_contingency([[a11, a12], [a21, a22]])[1]
 
 
-def p_cont(series: pd.Series, labels: pd.Series) -> float:
-    g1 = series[labels == 'Combination'].dropna()
-    g2 = series[labels == 'Monotherapy'].dropna()
-    if g1.empty or g2.empty:
-        return np.nan
-    n1 = len(g1)
-    n2 = len(g2)
-    normal = n1 >= 30 and n2 >= 30 and shapiro(g1).pvalue > 0.05 and shapiro(g2).pvalue > 0.05
-    if normal:
-        return ttest_ind(g1, g2, equal_var=False).pvalue
-    return mannwhitneyu(g1, g2, alternative='two-sided').pvalue
+def cont_test(v1, v2):
+    if shapiro(v1).pvalue >= 0.05 and shapiro(v2).pvalue >= 0.05:
+        return ttest_ind(v1, v2, equal_var=False).pvalue
+    return mannwhitneyu(v1, v2).pvalue
 
 
 def fmt_pct(n: int, d: int) -> str:
@@ -147,7 +121,6 @@ def fmt_range(series: pd.Series) -> str:
 
 
 def build_tables():
-    labels = pd.Series(['Combination'] * len(combo) + ['Monotherapy'] * len(mono))
     days_t, courses_t = parse_ext(total[COL_EXT])
     days_m, courses_m = parse_ext(mono[COL_EXT])
     days_c, courses_c = parse_ext(combo[COL_EXT])
@@ -190,8 +163,12 @@ def build_tables():
         t_x.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(ser_mono.sum()), len(mono))
         t_x.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(ser_combo.sum()), len(combo))
         if ser_total.sum():
-            p = p_cat(pd.concat([ser_combo, ser_mono]), labels)
-            t_x.at[row, 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+            a11 = int(ser_combo.sum())
+            a12 = len(ser_combo) - a11
+            a21 = int(ser_mono.sum())
+            a22 = len(ser_mono) - a21
+            p = chi_or_fisher(a11, a12, a21, a22)
+            t_x.at[row, 'p-value'] = f"{p:.3f}"
         else:
             t_x.at[row, 'p-value'] = ''
 
@@ -246,8 +223,8 @@ def build_tables():
     t_x.at[('Duration', 'Duration range, days'), 'Subgroup monotherapy (n=33)'] = fmt_range(days_m)
     t_x.at[('Duration', 'Duration range, days'), 'Subgroup combination (n=57)'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
-    p = p_cont(pd.concat([days_c, days_m]).reset_index(drop=True), labels)
-    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+    p = cont_test(days_c.dropna(), days_m.dropna())
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = f"{p:.3f}"
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
     t_y_index = pd.MultiIndex.from_tuples(
         [
