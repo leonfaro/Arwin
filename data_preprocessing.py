@@ -1,27 +1,39 @@
 import pandas as pd
 import numpy as np
+import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
+FILE_PATH = 'data characteristics v7, clean.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
-COL_NMV_STD = '1st line NMV-r standard duration treatment courses \n(n)'
+COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
-    '2nd line treatment form of therapy \n[m / c]\nmono: only NMV-r\n'
-    'combination: NMV-r + any other antiviral drugs'
+    '2nd line treatment form of therapy \n[m / c]\nmono: only Paxlovid\n'
+    'combination: Paxlovid + any other antiviral drugs'
 )
-COL_EXT = '2nd line extended NMV-r treatment \n(total days) [courses]'
+COL_EXT = '2nd line extended Paxlovid treatment \n(total days) [courses]'
 COL_SEX = 'sex\n[male, female]'
 COL_AGE = 'age'
 COL_DIS = 'Baseline disease cohort \n[a=autoimmunity, m=malignancy, t=transplant]'
-COL_BASE = 'baseline therapy'
+COL_BASE = 'baseline therapy cohort'
 COL_GC = 'any glucocorticosteroid usage\n[yes / no]'
 COL_VACC = 'Vaccination \n[yes / no] (doses)'
 COL_CT = 'CT lung changes?\n[yes / no]'
 COL_HOSP = 'Hospitalization\n[yes / no]'
 
-TOTAL = pd.read_excel('Total.xlsx')
-MONO = pd.read_excel('Monotherapy.xlsx')
-COMBO = pd.read_excel('Combination.xlsx')
-DF_mono = pd.read_excel('Monotherapy.xlsx')
-DF_comb = pd.read_excel('Combination.xlsx')
+
+def load_sheet(*names):
+    for n in names:
+        try:
+            return pd.read_excel(FILE_PATH, sheet_name=n)
+        except ValueError:
+            continue
+    raise
+
+
+TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104')
+MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
+COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+DF_mono = MONO.copy()
+DF_comb = COMBO.copy()
 
 
 def parse_ext(series: pd.Series):
@@ -60,16 +72,24 @@ def parse_vacc(x: str):
 
 
 def group_immuno(x: str) -> str:
-    s = str(x).lower()
-    if any(k in s for k in ('ritux', 'obinu', 'ocrel', 'mosune', 'cd-20')):
-        return 'Anti-CD20'
-    if 'car' in s:
-        return 'CAR-T'
-    if 'hsct' in s or 'asct' in s:
-        return 'HSCT'
-    if 'none' in s or 'no is' in s or not s:
-        return 'None'
-    return 'Other'
+    tags = re.split(r'[,\s]+', str(x).lower())
+    labs = set()
+    for t in tags:
+        if not t:
+            continue
+        if any(k in t for k in ['ritux', 'rtx', 'obinu', 'ocr', 'ocrel', 'mosune', 'cd20', 'cd-20']):
+            labs.add('CD20')
+        elif 'car' in t:
+            labs.add('CAR-T')
+        elif 'hsct' in t or 'asct' in t:
+            labs.add('HSCT')
+        elif 'none' in t or 'no' == t:
+            labs.add('none')
+        else:
+            labs.add('Other')
+    if not labs:
+        labs.add('none')
+    return labs.pop() if len(labs) == 1 else 'Mixed'
 
 
 def fmt_p(p):
@@ -88,3 +108,42 @@ def fmt_iqr(series: pd.Series) -> str:
 
 def fmt_range(series: pd.Series) -> str:
     return f'{int(series.min())}-{int(series.max())}'
+
+
+def baseline_stats() -> pd.DataFrame:
+    labels = ['CD20', 'CAR-T', 'HSCT', 'Other', 'none', 'Mixed']
+    t = TOTAL[COL_BASE].map(group_immuno)
+    m = MONO[COL_BASE].map(group_immuno)
+    c = COMBO[COL_BASE].map(group_immuno)
+    df = pd.DataFrame(index=labels, columns=[
+        'Total n',
+        'Total %',
+        'Mono n',
+        'Mono %',
+        'Combo n',
+        'Combo %',
+        'p-value',
+    ])
+    for lab in labels:
+        a11 = int((c == lab).sum())
+        a12 = len(c) - a11
+        a21 = int((m == lab).sum())
+        a22 = len(m) - a21
+        p = chi_or_fisher(a11, a12, a21, a22)
+        df.loc[lab] = [
+            int((t == lab).sum()),
+            (t == lab).mean() * 100,
+            a21,
+            (m == lab).mean() * 100,
+            a11,
+            (c == lab).mean() * 100,
+            fmt_p(p),
+        ]
+    return df
+
+
+if __name__ == '__main__':
+    print(TOTAL.shape)
+    print(MONO.shape)
+    print(COMBO.shape)
+    print(baseline_stats())

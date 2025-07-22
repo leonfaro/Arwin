@@ -44,17 +44,17 @@
 |     …  | *(Demografie‑ & Basis‑Variablen, #02–#14)*         | siehe alte README | nein                      | für später                                  |
 |     15 | `previous antiviral drugs (days) / [dosage]`       | string            | **ja ("Other AV")**       | ‎`≠ "none"` → Yes                           |
 |     16 | `any glucocorticosteroid usage …`                  | string            | nein                      | Meeting: *Glukokortikoide ignorieren*       |
-|     17 | `any previous NMV-r treatment …`                   | string            | **ja ("NMV‑r 1st line")** | Werte `yes` / `no`                          |
+|     17 | `any previous Paxlovid treatment …`                   | string            | **ja ("NMV‑r 1st line")** | Werte `yes` / `no`                          |
 |     18 | `form of therapy [mono / combination]`             | string            | nein (für *Testgrafik*)   | 2nd Line‑Klassifikation                     |
-|     19 | `standard duration NMV-r treatment courses [n]`    | int               | potentiell                | Markierung der 1st‑Line‑Intensität          |
-|     20 | `total days of extended NMV-r treatment [courses]` | int               | nein                      | gehört zur Zweit‑/Spätlinie                 |
+|     19 | `standard duration Paxlovid treatment courses [n]`    | int               | potentiell                | Markierung der 1st‑Line‑Intensität          |
+|     20 | `total days of extended Paxlovid treatment [courses]` | int               | nein                      | gehört zur Zweit‑/Spätlinie                 |
 |     21 | `concomitant antiviral therapy (days) / [dosages]` | string            | **ja ("Other AV")**       | zusätzl. Flag für „Other AV“                |
 |  22–27 | *Outcomes & Comments*                              | string/int        | nein                      | für spätere Analysen                        |
 
 > **Praktisches Mapping für die Grafik**
 >
 > ```text
-> NMVr_1L = (any previous NMV-r treatment …) == "yes"
+> NMVr_1L = (any previous Paxlovid treatment …) == "yes"
 > OtherAV_1L = (previous antiviral drugs … ≠ "none") OR
 >              (concomitant antiviral therapy … ≠ "none")
 > ```

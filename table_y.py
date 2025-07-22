@@ -31,10 +31,12 @@ def build_table_y():
             ('Underlying conditions, n (%)', 'Autoimmune'),
             ('Underlying conditions, n (%)', 'Transplantation'),
             ('Immunosuppressive treatment, n (%)', ''),
-            ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
+            ('Immunosuppressive treatment, n (%)', 'CD20'),
             ('Immunosuppressive treatment, n (%)', 'CAR-T'),
             ('Immunosuppressive treatment, n (%)', 'HSCT'),
-            ('Immunosuppressive treatment, n (%)', 'None'),
+            ('Immunosuppressive treatment, n (%)', 'Other'),
+            ('Immunosuppressive treatment, n (%)', 'none'),
+            ('Immunosuppressive treatment, n (%)', 'Mixed'),
             ('Glucocorticoid use, n (%)', ''),
             ('SARS-CoV-2 vaccination, n (%)', ''),
             ('Vaccination doses, n (range)', ''),
@@ -62,14 +64,7 @@ def build_table_y():
         return sum(letter in str(c).lower() for c in series)
 
     def immuno(x):
-        s = str(x).lower()
-        if any(k in s for k in ['rtx', 'obi', 'ocr', 'mos']):
-            return 'Anti-CD20'
-        if 'car' in s:
-            return 'CAR-T'
-        if 'hsct' in s:
-            return 'HSCT'
-        return 'None'
+        return group_immuno(x)
     res = {}
     for label, frame in {'Primary Cohort': TOTAL, 'Subgroup monotherapy': MONO, 'Subgroup combination': COMBO}.items():
         n = len(frame)
@@ -83,10 +78,8 @@ def build_table_y():
             'Transplantation': n_pct(cond(frame[COL_DIS], 't'), n),
         }
         cats = frame[COL_BASE].map(immuno)
-        out['Anti-CD20'] = n_pct((cats == 'Anti-CD20').sum(), n)
-        out['CAR-T'] = n_pct((cats == 'CAR-T').sum(), n)
-        out['HSCT'] = n_pct((cats == 'HSCT').sum(), n)
-        out['None'] = n_pct((cats == 'None').sum(), n)
+        for lab in ['CD20', 'CAR-T', 'HSCT', 'Other', 'none', 'Mixed']:
+            out[lab] = n_pct((cats == lab).sum(), n)
         out['Glucocorticoid use'] = n_pct((frame[COL_GC].str.lower() == 'y').sum(), n)
         out['Vaccinated'] = n_pct(vacc_yes.sum(), n)
         out['Vaccination doses'] = f"{int(doses.median())} ({int(doses.min())}\u2013{int(doses.max())})"
@@ -101,10 +94,12 @@ def build_table_y():
         (('Underlying conditions, n (%)', 'Hematological malignancy'), 'Hematological malignancy'),
         (('Underlying conditions, n (%)', 'Autoimmune'), 'Autoimmune'),
         (('Underlying conditions, n (%)', 'Transplantation'), 'Transplantation'),
-        (('Immunosuppressive treatment, n (%)', 'Anti-CD20'), 'Anti-CD20'),
+        (('Immunosuppressive treatment, n (%)', 'CD20'), 'CD20'),
         (('Immunosuppressive treatment, n (%)', 'CAR-T'), 'CAR-T'),
         (('Immunosuppressive treatment, n (%)', 'HSCT'), 'HSCT'),
-        (('Immunosuppressive treatment, n (%)', 'None'), 'None'),
+        (('Immunosuppressive treatment, n (%)', 'Other'), 'Other'),
+        (('Immunosuppressive treatment, n (%)', 'none'), 'none'),
+        (('Immunosuppressive treatment, n (%)', 'Mixed'), 'Mixed'),
         (('Glucocorticoid use, n (%)', ''), 'Glucocorticoid use'),
         (('SARS-CoV-2 vaccination, n (%)', ''), 'Vaccinated'),
         (('Vaccination doses, n (range)', ''), 'Vaccination doses'),
@@ -131,7 +126,7 @@ def build_table_y():
         t_y.at[('Underlying conditions, n (%)', lab), 'p-value'] = fmt_p(val)
     ic_mono = DF_mono[COL_BASE].map(group_immuno)
     ic_comb = DF_comb[COL_BASE].map(group_immuno)
-    for cat in ['Anti-CD20', 'CAR-T', 'HSCT', 'None']:
+    for cat in ['CD20', 'CAR-T', 'HSCT', 'Other', 'none', 'Mixed']:
         c1 = ic_comb == cat
         c2 = ic_mono == cat
         c1n = len(c1)
