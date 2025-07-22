@@ -171,3 +171,8 @@ def build_table_y():
     t_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
     t_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     return t_y
+
+
+if __name__ == '__main__':
+    print('Table Y. Demographics and Clinical Characteristics.')
+    print(build_table_y().to_string())

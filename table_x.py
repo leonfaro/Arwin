@@ -133,3 +133,8 @@ def build_table_x():
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
     return t_x
+
+
+if __name__ == '__main__':
+    print('Table X. Treatment Approach.')
+    print(build_table_x().to_string())
