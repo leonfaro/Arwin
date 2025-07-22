@@ -862,5 +862,6 @@ if __name__ == '__main__':
     print('* NMV-r, nirmatrelvir-ritonavir.')
     print('* \u00b9 Treatment setting where prolonged NMV-r was administered.')
     tab_z = build_table()
+    print('Table Z')
     print(tab_z.fillna(''))
     print('Anti-CD-20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.')
