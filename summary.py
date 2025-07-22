@@ -65,7 +65,7 @@ def flag_gc(x: str) -> str:
 def parse_vacc(x: str):
     s = str(x).lower()
     m = pd.Series(s).str.extract(r'(\d+)')[0]
-    dose = float(m) if m.notna().any() else np.nan
+    dose = float(m.iloc[0]) if m.notna().any() else np.nan
     if s.startswith('y'):
         return 'Yes', dose
     if s.startswith('n'):
@@ -91,7 +91,9 @@ def parse_ext(series: pd.Series):
 
 
 def p_cat(series: pd.Series, labels: pd.Series) -> float:
-    table = pd.crosstab(series, labels)
+    ser = pd.Series(series).reset_index(drop=True)
+    lab = pd.Series(labels).reset_index(drop=True)
+    table = pd.crosstab(ser, lab)
     exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
     if series.nunique() == 2:
         if (exp < 5).any():
@@ -178,7 +180,11 @@ def build_tables():
         t_x.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(ser_total.sum()), len(total))
         t_x.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(ser_mono.sum()), len(mono))
         t_x.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(ser_combo.sum()), len(combo))
-        t_x.at[row, 'p-value'] = f"{p_cat(pd.concat([ser_combo, ser_mono]), labels):.3f}" if ser_total.sum() else ''
+        if ser_total.sum():
+            p = p_cat(pd.concat([ser_combo, ser_mono]), labels)
+            t_x.at[row, 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+        else:
+            t_x.at[row, 'p-value'] = ''
 
     remd_t = total[COL_OTHER].fillna('').str.contains('RDV', case=False)
     remd_m = mono[COL_OTHER].fillna('').str.contains('RDV', case=False)
@@ -200,10 +206,14 @@ def build_tables():
     mon_t = total[COL_THERAPY].str.startswith('m', na=False)
     com_t = total[COL_THERAPY].str.startswith('c', na=False)
     t_x.at['Combination therapy', 'Primary Cohort (n=104)'] = fmt_pct(int(com_t.sum()), len(total))
+    t_x.at['Combination therapy', 'Subgroup monotherapy (n=33)'] = fmt_pct(0, len(mono))
+    t_x.at['Combination therapy', 'Subgroup combination (n=57)'] = fmt_pct(len(combo), len(combo))
+    t_x.at['Combination therapy', 'p-value'] = ''
     t_x.at['Monotherapy', 'Primary Cohort (n=104)'] = fmt_pct(int(mon_t.sum()), len(total))
-    t_x.at['Subgroup monotherapy (n=33)'] = ['', fmt_pct(len(mono), len(mono)), '', '']
-    t_x.at['Subgroup combination (n=57)'] = ['', '', fmt_pct(len(combo), len(combo)), '']
-    t_x.at['Last line therapy\u00b2, n (%)'] = ''
+    t_x.at['Monotherapy', 'Subgroup monotherapy (n=33)'] = fmt_pct(len(mono), len(mono))
+    t_x.at['Monotherapy', 'Subgroup combination (n=57)'] = fmt_pct(0, len(combo))
+    t_x.at['Monotherapy', 'p-value'] = ''
+    t_x.loc['Last line therapy\u00b2, n (%)'] = ''
     single_t = courses_t == 1
     single_m = courses_m == 1
     single_c = courses_c == 1
@@ -220,7 +230,9 @@ def build_tables():
     t_x.at['Duration range, days', 'Subgroup monotherapy (n=33)'] = fmt_range(days_m)
     t_x.at['Duration range, days', 'Subgroup combination (n=57)'] = fmt_range(days_c)
     t_x.loc['Duration'] = ''
-    t_x.at['Median duration, days (IQR)', 'p-value'] = f"{p_cont(pd.concat([days_c, days_m]), labels):.3f}"
+    p = p_cont(pd.concat([days_c, days_m]).reset_index(drop=True), labels)
+    t_x.at['Median duration, days (IQR)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+    t_x.at['Duration range, days', 'p-value'] = ''
     t_y_rows = [
         'Age, median (IQR)',
         'Female sex, n (%)',
@@ -256,7 +268,8 @@ def build_tables():
     t_y.at['Age, median (IQR)', 'Primary Cohort (n=104)'] = fmt_iqr(age_t)
     t_y.at['Age, median (IQR)', 'Subgroup monotherapy (n=33)'] = fmt_iqr(age_m)
     t_y.at['Age, median (IQR)', 'Subgroup combination (n=57)'] = fmt_iqr(age_c)
-    t_y.at['Age, median (IQR)', 'p-value'] = f"{p_cont(pd.concat([age_c, age_m]), labels):.3f}"
+    p = p_cont(pd.concat([age_c, age_m]).reset_index(drop=True), labels)
+    t_y.at['Age, median (IQR)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
     female_t = total[COL_SEX].str.lower().str.startswith('f')
     female_m = mono[COL_SEX].str.lower().str.startswith('f')
     female_c = combo[COL_SEX].str.lower().str.startswith('f')
@@ -265,7 +278,11 @@ def build_tables():
         t_y.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(ser_total.sum()), len(total))
         t_y.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(ser_mono.sum()), len(mono))
         t_y.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(ser_combo.sum()), len(combo))
-        t_y.at[row, 'p-value'] = f"{p_cat(pd.concat([ser_combo, ser_mono]), labels):.3f}" if ser_total.sum() else ''
+        if ser_total.sum():
+            p = p_cat(pd.concat([ser_combo, ser_mono]), labels)
+            t_y.at[row, 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+        else:
+            t_y.at[row, 'p-value'] = ''
 
     add_y('Female sex, n (%)', female_t, female_m, female_c)
     dis_t = total[COL_DIS].map(group_disease)
@@ -292,7 +309,8 @@ def build_tables():
     t_y.at['Vaccination doses, n (range)', 'Primary Cohort (n=104)'] = fmt_range(doses_t.dropna())
     t_y.at['Vaccination doses, n (range)', 'Subgroup monotherapy (n=33)'] = fmt_range(doses_m.dropna())
     t_y.at['Vaccination doses, n (range)', 'Subgroup combination (n=57)'] = fmt_range(doses_c.dropna())
-    t_y.at['Vaccination doses, n (range)', 'p-value'] = f"{p_cont(pd.concat([doses_c, doses_m]), labels):.3f}"
+    p = p_cont(pd.concat([doses_c, doses_m]).reset_index(drop=True), labels)
+    t_y.at['Vaccination doses, n (range)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
     ct_t = total[COL_CT].map(group_ct) == 'Yes'
     ct_m = mono[COL_CT].map(group_ct) == 'Yes'
     ct_c = combo[COL_CT].map(group_ct) == 'Yes'
