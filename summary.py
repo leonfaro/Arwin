@@ -108,6 +108,12 @@ def cont_test(v1, v2):
     return mannwhitneyu(v1, v2).pvalue
 
 
+def fmt_p(p):
+    if p < 0.001:
+        return "<0.001"
+    return f"{round(p, 3):.3f}"
+
+
 def fmt_pct(n: int, d: int) -> str:
     return f'{n} ({n / d * 100:.1f}%)' if d else '0 (0.0%)'
 
@@ -168,7 +174,7 @@ def build_tables():
             a21 = int(ser_mono.sum())
             a22 = len(ser_mono) - a21
             p = chi_or_fisher(a11, a12, a21, a22)
-            t_x.at[row, 'p-value'] = f"{p:.3f}"
+            t_x.at[row, 'p-value'] = fmt_p(p)
         else:
             t_x.at[row, 'p-value'] = ''
 
@@ -201,7 +207,7 @@ def build_tables():
     t_x.at[idx, 'Subgroup monotherapy (n=33)'] = fmt_pct(0, len(mono))
     t_x.at[idx, 'Subgroup combination (n=57)'] = fmt_pct(len(combo), len(combo))
     p_last = chi_or_fisher(len(combo), 0, 0, len(mono))
-    t_x.at[idx, 'p-value'] = f"{p_last:.3f}"
+    t_x.at[idx, 'p-value'] = fmt_p(p_last)
     idx = ('Last line therapy\u00b2, n (%)', 'Monotherapy')
     t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(mono_flag_t.sum()), len(total))
     t_x.at[idx, 'Subgroup monotherapy (n=33)'] = fmt_pct(len(mono), len(mono))
@@ -223,7 +229,7 @@ def build_tables():
     t_x.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(multi_m.sum()), len(mono))
     t_x.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(multi_c.sum()), len(combo))
     p_course = chi_or_fisher(int(single_c.sum()), int(multi_c.sum()), int(single_m.sum()), int(multi_m.sum()))
-    t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'p-value'] = f"{p_course:.3f}"
+    t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'p-value'] = fmt_p(p_course)
     t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'p-value'] = ''
     t_x.loc[('Treatment courses, n (%)', '')] = ''
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Primary Cohort (n=104)'] = fmt_iqr(days_t)
@@ -234,8 +240,8 @@ def build_tables():
     t_x.at[('Duration', 'Duration range, days'), 'Subgroup combination (n=57)'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
     p_dur = cont_test(days_m.dropna(), days_c.dropna())
-    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = f"{p_dur:.3f}"
-    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = f"{p_dur:.3f}"
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
     t_y_index = pd.MultiIndex.from_tuples(
         [
             ('Age, median (IQR)', ''),
@@ -329,20 +335,20 @@ def build_tables():
         for col, lab in zip(t_y.columns[:-1], res.keys()):
             t_y.at[row, col] = res[lab][key]
     p_age = cont_test(DF_mono[COL_AGE].dropna(), DF_comb[COL_AGE].dropna())
-    t_y.at[('Age, median (IQR)', ''), 'p-value'] = f"{p_age:.3f}"
+    t_y.at[('Age, median (IQR)', ''), 'p-value'] = fmt_p(p_age)
     f_mono = DF_mono[COL_SEX].astype(str).str.lower().str.startswith('f')
     f_comb = DF_comb[COL_SEX].astype(str).str.lower().str.startswith('f')
     cmb_n = len(f_comb)
     mono_n = len(f_mono)
     p_fem = chi_or_fisher(int(f_comb.sum()), cmb_n - int(f_comb.sum()), int(f_mono.sum()), mono_n - int(f_mono.sum()))
-    t_y.at[('Female sex, n (%)', ''), 'p-value'] = f"{p_fem:.3f}"
+    t_y.at[('Female sex, n (%)', ''), 'p-value'] = fmt_p(p_fem)
     for lab, letter in [('Hematological malignancy', 'm'), ('Autoimmune', 'a'), ('Transplantation', 't')]:
         m1 = DF_comb[COL_DIS].astype(str).str.lower().str.contains(letter)
         m2 = DF_mono[COL_DIS].astype(str).str.lower().str.contains(letter)
         c1n = len(m1)
         c2n = len(m2)
         val = chi_or_fisher(int(m1.sum()), c1n - int(m1.sum()), int(m2.sum()), c2n - int(m2.sum()))
-        t_y.at[('Underlying conditions, n (%)', lab), 'p-value'] = f"{val:.3f}"
+        t_y.at[('Underlying conditions, n (%)', lab), 'p-value'] = fmt_p(val)
     ic_mono = DF_mono[COL_BASE].map(group_immuno)
     ic_comb = DF_comb[COL_BASE].map(group_immuno)
     for cat in ['Anti-CD20', 'CAR-T', 'HSCT', 'None']:
@@ -351,36 +357,36 @@ def build_tables():
         c1n = len(c1)
         c2n = len(c2)
         val = chi_or_fisher(int(c1.sum()), c1n - int(c1.sum()), int(c2.sum()), c2n - int(c2.sum()))
-        t_y.at[('Immunosuppressive treatment, n (%)', cat), 'p-value'] = f"{val:.3f}"
+        t_y.at[('Immunosuppressive treatment, n (%)', cat), 'p-value'] = fmt_p(val)
     gc_mono = DF_mono[COL_GC].astype(str).str.lower().str.startswith('y')
     gc_comb = DF_comb[COL_GC].astype(str).str.lower().str.startswith('y')
     c1n = len(gc_comb)
     c2n = len(gc_mono)
     p_gc = chi_or_fisher(int(gc_comb.sum()), c1n - int(gc_comb.sum()), int(gc_mono.sum()), c2n - int(gc_mono.sum()))
-    t_y.at[('Glucocorticoid use, n (%)', ''), 'p-value'] = f"{p_gc:.3f}"
+    t_y.at[('Glucocorticoid use, n (%)', ''), 'p-value'] = fmt_p(p_gc)
     v_mono = DF_mono[COL_VACC].astype(str).str.lower().str.startswith('y')
     v_comb = DF_comb[COL_VACC].astype(str).str.lower().str.startswith('y')
     c1n = len(v_comb)
     c2n = len(v_mono)
     p_vacc = chi_or_fisher(int(v_comb.sum()), c1n - int(v_comb.sum()), int(v_mono.sum()), c2n - int(v_mono.sum()))
-    t_y.at[('SARS-CoV-2 vaccination, n (%)', ''), 'p-value'] = f"{p_vacc:.3f}"
+    t_y.at[('SARS-CoV-2 vaccination, n (%)', ''), 'p-value'] = fmt_p(p_vacc)
     d_mono = DF_mono[COL_VACC].map(lambda x: parse_vacc(x)[1])
     d_comb = DF_comb[COL_VACC].map(lambda x: parse_vacc(x)[1])
     p_dose = cont_test(d_mono.dropna(), d_comb.dropna())
-    t_y.at[('Vaccination doses, n (range)', ''), 'p-value'] = f"{p_dose:.3f}"
+    t_y.at[('Vaccination doses, n (range)', ''), 'p-value'] = fmt_p(p_dose)
     ct_mono = DF_mono[COL_CT].astype(str).str.lower().str.startswith('y')
     ct_comb = DF_comb[COL_CT].astype(str).str.lower().str.startswith('y')
     c1n = len(ct_comb)
     c2n = len(ct_mono)
     p_ct = chi_or_fisher(int(ct_comb.sum()), c1n - int(ct_comb.sum()), int(ct_mono.sum()), c2n - int(ct_mono.sum()))
-    t_y.at[('Thoracic CT changes, n (%)', ''), 'p-value'] = f"{p_ct:.3f}"
+    t_y.at[('Thoracic CT changes, n (%)', ''), 'p-value'] = fmt_p(p_ct)
     h_mono = DF_mono[COL_HOSP].astype(str).str.lower().str.startswith('y')
     h_comb = DF_comb[COL_HOSP].astype(str).str.lower().str.startswith('y')
     c1n = len(h_comb)
     c2n = len(h_mono)
     p_hosp = chi_or_fisher(int(h_comb.sum()), c1n - int(h_comb.sum()), int(h_mono.sum()), c2n - int(h_mono.sum()))
-    t_y.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = f"{p_hosp:.3f}"
-    t_y.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = f"{p_hosp:.3f}"
+    t_y.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = fmt_p(p_hosp)
+    t_y.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = fmt_p(p_hosp)
     t_y.loc[('Underlying conditions, n (%)', '')] = ''
     t_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
     t_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
