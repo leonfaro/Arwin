@@ -2,10 +2,18 @@ import pandas as pd
 import numpy as np
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
 import re
+FILE_PATH = 'data characteristics v7, clean.xlsx'
 
 
-def load_file(label, path):
-    df_tmp = pd.read_excel(path)
+def load_file(label, *names):
+    for s in names:
+        try:
+            df_tmp = pd.read_excel(FILE_PATH, sheet_name=s)
+            break
+        except ValueError:
+            continue
+    else:
+        raise
     df_tmp["group"] = label
     df_tmp["source_sheet"] = label
     col = None
@@ -26,9 +34,9 @@ def load_file(label, path):
     return df_tmp
 
 
-df_total = load_file("Total", "Total.xlsx")
-df_combo = load_file("Combination", "Combination.xlsx")
-df_mono = load_file("Monotherapy", "Monotherapy.xlsx")
+df_total = load_file("Total", "primary cohort, clean", "primary cohort, n=104")
+df_combo = load_file("Combination", "subgroup combo", "subgroup combo, n=57")
+df_mono = load_file("Monotherapy", "subgroup mono", "subgroup mono n=33")
 df = df_total.copy()
 
 

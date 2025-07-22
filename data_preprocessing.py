@@ -1,27 +1,38 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
+FILE_PATH = 'data characteristics v7, clean.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
-COL_NMV_STD = '1st line NMV-r standard duration treatment courses \n(n)'
+COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
-    '2nd line treatment form of therapy \n[m / c]\nmono: only NMV-r\n'
-    'combination: NMV-r + any other antiviral drugs'
+    '2nd line treatment form of therapy \n[m / c]\nmono: only Paxlovid\n'
+    'combination: Paxlovid + any other antiviral drugs'
 )
-COL_EXT = '2nd line extended NMV-r treatment \n(total days) [courses]'
+COL_EXT = '2nd line extended Paxlovid treatment \n(total days) [courses]'
 COL_SEX = 'sex\n[male, female]'
 COL_AGE = 'age'
 COL_DIS = 'Baseline disease cohort \n[a=autoimmunity, m=malignancy, t=transplant]'
-COL_BASE = 'baseline therapy'
+COL_BASE = 'Baseline therapy cohort'
 COL_GC = 'any glucocorticosteroid usage\n[yes / no]'
 COL_VACC = 'Vaccination \n[yes / no] (doses)'
 COL_CT = 'CT lung changes?\n[yes / no]'
 COL_HOSP = 'Hospitalization\n[yes / no]'
 
-TOTAL = pd.read_excel('Total.xlsx')
-MONO = pd.read_excel('Monotherapy.xlsx')
-COMBO = pd.read_excel('Combination.xlsx')
-DF_mono = pd.read_excel('Monotherapy.xlsx')
-DF_comb = pd.read_excel('Combination.xlsx')
+
+def load_sheet(*names):
+    for n in names:
+        try:
+            return pd.read_excel(FILE_PATH, sheet_name=n)
+        except ValueError:
+            continue
+    raise
+
+
+TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104')
+MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
+COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+DF_mono = MONO.copy()
+DF_comb = COMBO.copy()
 
 
 def parse_ext(series: pd.Series):
