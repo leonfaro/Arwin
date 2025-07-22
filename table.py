@@ -524,4 +524,4 @@ if __name__ == "__main__":
     assert out["p-value"].str.len().gt(0).sum() == tested
     print("Table Z. Expanded Clinical Characteristics.")
     print(out.to_string())
-    print("Anti-CD-20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.")
+    print("CD20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.")

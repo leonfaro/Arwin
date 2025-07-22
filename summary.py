@@ -19,4 +19,4 @@ if __name__ == '__main__':
     print('* \u00b9 Treatment setting where prolonged Paxlovid was administered.')
     print('Table Z')
     print(tab_z.fillna(''))
-    print('Anti-CD-20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.')
+    print('CD20 umfasst Rituximab, Obinutuzumab, Ocrelizumab, Mosunetuzumab.')
