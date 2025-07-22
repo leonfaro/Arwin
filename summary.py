@@ -154,6 +154,7 @@ def build_tables():
     days_m, courses_m = parse_ext(mono[COL_EXT])
     days_c, courses_c = parse_ext(combo[COL_EXT])
     t_x_rows = [
+        'N=',
         'First-line therapy\u00b9, n (%)',
         'Remdesivir',
         'Molnupiravir',
@@ -175,6 +176,10 @@ def build_tables():
         'Subgroup combination (n=57)',
         'p-value',
     ])
+    t_x.at['N=', 'Primary Cohort (n=104)'] = len(total)
+    t_x.at['N=', 'Subgroup monotherapy (n=33)'] = len(mono)
+    t_x.at['N=', 'Subgroup combination (n=57)'] = len(combo)
+    t_x.at['N=', 'p-value'] = ''
 
     def add_rate(row, ser_total, ser_mono, ser_combo):
         t_x.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(ser_total.sum()), len(total))
@@ -234,6 +239,7 @@ def build_tables():
     t_x.at['Median duration, days (IQR)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
     t_x.at['Duration range, days', 'p-value'] = ''
     t_y_rows = [
+        'N=',
         'Age, median (IQR)',
         'Female sex, n (%)',
         'Underlying conditions, n (%)',
@@ -259,6 +265,10 @@ def build_tables():
         'Subgroup combination (n=57)',
         'p-value',
     ])
+    t_y.at['N=', 'Primary Cohort (n=104)'] = len(total)
+    t_y.at['N=', 'Subgroup monotherapy (n=33)'] = len(mono)
+    t_y.at['N=', 'Subgroup combination (n=57)'] = len(combo)
+    t_y.at['N=', 'p-value'] = ''
     t_y.loc['Underlying conditions, n (%)'] = ''
     t_y.loc['Immunosuppressive treatment, n (%)'] = ''
     t_y.loc['Treatment setting\u00b9, n (%)'] = ''
