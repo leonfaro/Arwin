@@ -251,7 +251,6 @@ def build_tables():
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
     t_y_index = pd.MultiIndex.from_tuples(
         [
-            ('N=', ''),
             ('Age, median (IQR)', ''),
             ('Female sex, n (%)', ''),
             ('Underlying conditions, n (%)', ''),
@@ -277,76 +276,73 @@ def build_tables():
         'Primary Cohort (n=104)',
         'Subgroup monotherapy (n=33)',
         'Subgroup combination (n=57)',
-        'p-value',
     ])
-    t_y.at[('N=', ''), 'Primary Cohort (n=104)'] = len(total)
-    t_y.at[('N=', ''), 'Subgroup monotherapy (n=33)'] = len(mono)
-    t_y.at[('N=', ''), 'Subgroup combination (n=57)'] = len(combo)
-    t_y.at[('N=', ''), 'p-value'] = ''
+
+    def age_fmt(s):
+        return f"{int(s.median())} ({int(s.quantile(0.25))}\u2013{int(s.quantile(0.75))})"
+
+    def n_pct(count, n):
+        return f"{count} ({round(count/n*100)}%)"
+
+    def cond(series, letter):
+        return sum(letter in str(c).lower() for c in series)
+
+    def immuno(x):
+        s = str(x).lower()
+        if any(k in s for k in ['rtx', 'obi', 'ocr', 'mos']):
+            return 'Anti-CD20'
+        if 'car' in s:
+            return 'CAR-T'
+        if 'hsct' in s:
+            return 'HSCT'
+        return 'None'
+    res = {}
+    for label, frame in {'Primary Cohort': total, 'Subgroup monotherapy': mono, 'Subgroup combination': combo}.items():
+        n = len(frame)
+        vacc_yes = frame[COL_VACC].astype(str).str.lower().str.startswith('y')
+        doses = pd.to_numeric(frame.loc[vacc_yes, COL_VACC].str.extract(r"\((\d+)\)")[0], errors='coerce')
+        out = {
+            'Age': age_fmt(frame[COL_AGE]),
+            'Female': n_pct((frame[COL_SEX].str.lower() == 'f').sum(), n),
+            'Hematological malignancy': n_pct(cond(frame[COL_DIS], 'm'), n),
+            'Autoimmune': n_pct(cond(frame[COL_DIS], 'a'), n),
+            'Transplantation': n_pct(cond(frame[COL_DIS], 't'), n),
+        }
+        cats = frame[COL_BASE].map(immuno)
+        out['Anti-CD20'] = n_pct((cats == 'Anti-CD20').sum(), n)
+        out['CAR-T'] = n_pct((cats == 'CAR-T').sum(), n)
+        out['HSCT'] = n_pct((cats == 'HSCT').sum(), n)
+        out['None'] = n_pct((cats == 'None').sum(), n)
+        out['Glucocorticoid use'] = n_pct((frame[COL_GC].str.lower() == 'y').sum(), n)
+        out['Vaccinated'] = n_pct(vacc_yes.sum(), n)
+        out['Vaccination doses'] = f"{int(doses.median())} ({int(doses.min())}\u2013{int(doses.max())})"
+        out['CT changes'] = n_pct((frame[COL_CT].str.lower() == 'y').sum(), n)
+        hosp = frame[COL_HOSP].str.lower()
+        out['Hospital'] = n_pct((hosp == 'y').sum(), n)
+        out['Outpatient'] = n_pct((hosp != 'y').sum(), n)
+        res[label] = out
+    for row, key in [
+        (('Age, median (IQR)', ''), 'Age'),
+        (('Female sex, n (%)', ''), 'Female'),
+        (('Underlying conditions, n (%)', 'Hematological malignancy'), 'Hematological malignancy'),
+        (('Underlying conditions, n (%)', 'Autoimmune'), 'Autoimmune'),
+        (('Underlying conditions, n (%)', 'Transplantation'), 'Transplantation'),
+        (('Immunosuppressive treatment, n (%)', 'Anti-CD20'), 'Anti-CD20'),
+        (('Immunosuppressive treatment, n (%)', 'CAR-T'), 'CAR-T'),
+        (('Immunosuppressive treatment, n (%)', 'HSCT'), 'HSCT'),
+        (('Immunosuppressive treatment, n (%)', 'None'), 'None'),
+        (('Glucocorticoid use, n (%)', ''), 'Glucocorticoid use'),
+        (('SARS-CoV-2 vaccination, n (%)', ''), 'Vaccinated'),
+        (('Vaccination doses, n (range)', ''), 'Vaccination doses'),
+        (('Thoracic CT changes, n (%)', ''), 'CT changes'),
+        (('Treatment setting\u00b9, n (%)', 'Hospital'), 'Hospital'),
+        (('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Outpatient'),
+    ]:
+        for col, lab in zip(t_y.columns, res.keys()):
+            t_y.at[row, col] = res[lab][key]
     t_y.loc[('Underlying conditions, n (%)', '')] = ''
     t_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
     t_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
-    age_t = total[COL_AGE]
-    age_m = mono[COL_AGE]
-    age_c = combo[COL_AGE]
-    t_y.at[('Age, median (IQR)', ''), 'Primary Cohort (n=104)'] = fmt_iqr(age_t)
-    t_y.at[('Age, median (IQR)', ''), 'Subgroup monotherapy (n=33)'] = fmt_iqr(age_m)
-    t_y.at[('Age, median (IQR)', ''), 'Subgroup combination (n=57)'] = fmt_iqr(age_c)
-    p = p_cont(pd.concat([age_c, age_m]).reset_index(drop=True), labels)
-    t_y.at[('Age, median (IQR)', ''), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
-    female_t = total[COL_SEX].str.lower().str.startswith('f')
-    female_m = mono[COL_SEX].str.lower().str.startswith('f')
-    female_c = combo[COL_SEX].str.lower().str.startswith('f')
-
-    def add_y(row, ser_total, ser_mono, ser_combo):
-        t_y.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(ser_total.sum()), len(total))
-        t_y.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(ser_mono.sum()), len(mono))
-        t_y.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(ser_combo.sum()), len(combo))
-        if ser_total.sum():
-            p = p_cat(pd.concat([ser_combo, ser_mono]), labels)
-            t_y.at[row, 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
-        else:
-            t_y.at[row, 'p-value'] = ''
-
-    add_y(('Female sex, n (%)', ''), female_t, female_m, female_c)
-    dis_t = total[COL_DIS].map(group_disease)
-    dis_m = mono[COL_DIS].map(group_disease)
-    dis_c = combo[COL_DIS].map(group_disease)
-    for cat in ['Hematological malignancy', 'Autoimmune', 'Transplantation']:
-        add_y(('Underlying conditions, n (%)', cat), dis_t == cat, dis_m == cat, dis_c == cat)
-    imm_t = total[COL_BASE].map(group_immuno)
-    imm_m = mono[COL_BASE].map(group_immuno)
-    imm_c = combo[COL_BASE].map(group_immuno)
-    for cat in ['Anti-CD20', 'CAR-T', 'HSCT', 'None']:
-        add_y(('Immunosuppressive treatment, n (%)', cat), imm_t == cat, imm_m == cat, imm_c == cat)
-    gc_t = total[COL_GC].map(flag_gc) == 'Yes'
-    gc_m = mono[COL_GC].map(flag_gc) == 'Yes'
-    gc_c = combo[COL_GC].map(flag_gc) == 'Yes'
-    add_y(('Glucocorticoid use, n (%)', ''), gc_t, gc_m, gc_c)
-    vacc_t = total[COL_VACC].map(lambda x: parse_vacc(x)[0]) == 'Yes'
-    vacc_m = mono[COL_VACC].map(lambda x: parse_vacc(x)[0]) == 'Yes'
-    vacc_c = combo[COL_VACC].map(lambda x: parse_vacc(x)[0]) == 'Yes'
-    add_y(('SARS-CoV-2 vaccination, n (%)', ''), vacc_t, vacc_m, vacc_c)
-    doses_t = total[COL_VACC].map(lambda x: parse_vacc(x)[1])
-    doses_m = mono[COL_VACC].map(lambda x: parse_vacc(x)[1])
-    doses_c = combo[COL_VACC].map(lambda x: parse_vacc(x)[1])
-    t_y.at[('Vaccination doses, n (range)', ''), 'Primary Cohort (n=104)'] = fmt_range(doses_t.dropna())
-    t_y.at[('Vaccination doses, n (range)', ''), 'Subgroup monotherapy (n=33)'] = fmt_range(doses_m.dropna())
-    t_y.at[('Vaccination doses, n (range)', ''), 'Subgroup combination (n=57)'] = fmt_range(doses_c.dropna())
-    p = p_cont(pd.concat([doses_c, doses_m]).reset_index(drop=True), labels)
-    t_y.at[('Vaccination doses, n (range)', ''), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
-    ct_t = total[COL_CT].map(group_ct) == 'Yes'
-    ct_m = mono[COL_CT].map(group_ct) == 'Yes'
-    ct_c = combo[COL_CT].map(group_ct) == 'Yes'
-    add_y(('Thoracic CT changes, n (%)', ''), ct_t, ct_m, ct_c)
-    hosp_t = total[COL_HOSP].str.lower().str.startswith('y')
-    hosp_m = mono[COL_HOSP].str.lower().str.startswith('y')
-    hosp_c = combo[COL_HOSP].str.lower().str.startswith('y')
-    add_y(('Treatment setting\u00b9, n (%)', 'Hospital'), hosp_t, hosp_m, hosp_c)
-    out_t = total[COL_HOSP].str.lower().str.startswith('n')
-    out_m = mono[COL_HOSP].str.lower().str.startswith('n')
-    out_c = combo[COL_HOSP].str.lower().str.startswith('n')
-    add_y(('Treatment setting\u00b9, n (%)', 'Outpatient'), out_t, out_m, out_c)
     return t_x, t_y
 
 
