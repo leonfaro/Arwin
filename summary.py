@@ -7,6 +7,8 @@ FILES = {"mono": "Monotherapy.xlsx", "comb": "Combination.xlsx"}
 DF_mono = pd.read_excel(FILES["mono"])
 DF_comb = pd.read_excel(FILES["comb"])
 
+df_compare = pd.DataFrame()
+
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line NMV-r standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -105,6 +107,44 @@ def cont_test(v1, v2):
     if shapiro(v1).pvalue >= 0.05 and shapiro(v2).pvalue >= 0.05:
         return ttest_ind(v1, v2, equal_var=False).pvalue
     return mannwhitneyu(v1, v2).pvalue
+
+
+def chi2_perm(series):
+    cats = pd.Categorical(series)
+    labs = df_compare.loc[series.index, 'therapy']
+    obs_tab = pd.crosstab(cats, labs)
+    obs = chi2_contingency(obs_tab, correction=False)[0]
+    codes = cats.codes
+    labels = labs.values.copy()
+    rng = np.random.default_rng(0)
+    cnt = 0
+    for _ in range(10000):
+        rng.shuffle(labels)
+        perm = np.zeros(obs_tab.shape)
+        for i in range(len(cats.categories)):
+            mask = codes == i
+            perm[i, 0] = np.sum(labels[mask] == 'Combination')
+            perm[i, 1] = np.sum(labels[mask] == 'Monotherapy')
+        val = chi2_contingency(perm, correction=False)[0]
+        if val >= obs:
+            cnt += 1
+    return cnt / 10000
+
+
+def p_categorical(series):
+    ser = series.dropna()
+    labs = df_compare.loc[ser.index, 'therapy']
+    if ser.nunique() < 2:
+        return np.nan
+    table = pd.crosstab(ser, labs)
+    exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
+    if ser.nunique() == 2:
+        if (exp < 5).any():
+            return fisher_exact(table)[1]
+        return chi2_contingency(table, correction=False)[1]
+    if (exp < 5).any():
+        return chi2_perm(ser)
+    return chi2_contingency(table, correction=False)[1]
 
 
 def fmt_p(p):
@@ -634,6 +674,8 @@ def build_table():
     df_combo = transform(df_combo)
     df_mono = transform(df_mono)
     group_map = {'Total': df_total, 'Combination': df_combo, 'Monotherapy': df_mono}
+    global df_compare
+    df_compare = pd.concat([df_combo, df_mono], ignore_index=True)
     df = df_total
 
     def fmt_num(x, typ):
@@ -668,11 +710,14 @@ def build_table():
     rows += [f'  *{i}*' for i in unique_order(df['adverse'].unique(), ae_order)]
 
     groups = ['Total', 'Combination', 'Monotherapy']
-    cols = groups
+    cols = groups + ['p-value']
     out = pd.DataFrame(index=rows, columns=cols)
     out.loc['N=', 'Total'] = len(df_total)
     out.loc['N=', 'Combination'] = len(df_combo)
     out.loc['N=', 'Monotherapy'] = len(df_mono)
+    p_store = {}
+
+    p_store['Age'] = cont_test(df_combo[col_age].dropna(), df_mono[col_age].dropna())
 
     for g in groups:
         d = group_map[g]
@@ -682,6 +727,12 @@ def build_table():
     for g in groups:
         d = group_map[g]
         out.at['Sex (female)', g] = fmt_count(female.loc[d.index].fillna(False))
+    p_store['Sex (female)'] = chi_or_fisher(
+        int(female.loc[df_combo.index].fillna(False).sum()),
+        len(df_combo) - int(female.loc[df_combo.index].fillna(False).sum()),
+        int(female.loc[df_mono.index].fillna(False).sum()),
+        len(df_mono) - int(female.loc[df_mono.index].fillna(False).sum()),
+    )
 
     for g in groups:
         d = group_map[g]
@@ -690,6 +741,13 @@ def build_table():
     out.at['Disease group', 'Total'] = ''
     out.at['Disease group', 'Combination'] = ''
     out.at['Disease group', 'Monotherapy'] = ''
+    p_store['Disease group'] = p_categorical(pd.concat([df_combo, df_mono])['disease'])
+    for cat in unique_order(df['disease'].unique(), disease_order):
+        a11 = int((df_combo['disease'] == cat).sum())
+        a12 = len(df_combo) - a11
+        a21 = int((df_mono['disease'] == cat).sum())
+        a22 = len(df_mono) - a21
+        p_store[f'  *{cat}*'] = chi_or_fisher(a11, a12, a21, a22)
 
     for g in groups:
         d = group_map[g]
@@ -698,28 +756,64 @@ def build_table():
     out.at['Immunosuppressive treatment', 'Total'] = ''
     out.at['Immunosuppressive treatment', 'Combination'] = ''
     out.at['Immunosuppressive treatment', 'Monotherapy'] = ''
+    p_store['Immunosuppressive treatment'] = p_categorical(pd.concat([df_combo, df_mono])['immuno3'])
+    for cat in unique_order(df['immuno_detail'].unique(), immuno_order):
+        a11 = int((df_combo['immuno_detail'] == cat).sum())
+        a12 = len(df_combo) - a11
+        a21 = int((df_mono['immuno_detail'] == cat).sum())
+        a22 = len(df_mono) - a21
+        p_store[f'  *{cat}*'] = chi_or_fisher(a11, a12, a21, a22)
 
     for g in groups:
         d = group_map[g]
         out.at['Glucocorticoid use', g] = fmt_count(d['gc'] == 'Yes')
+    p_store['Glucocorticoid use'] = chi_or_fisher(
+        int((df_combo['gc'] == 'Yes').sum()),
+        len(df_combo) - int((df_combo['gc'] == 'Yes').sum()),
+        int((df_mono['gc'] == 'Yes').sum()),
+        len(df_mono) - int((df_mono['gc'] == 'Yes').sum()),
+    )
 
     for g in groups:
         d = group_map[g]
         out.at['SARS-CoV-2 Vaccination', g] = fmt_count(d['vacc'] == 'Yes')
     for g in groups:
         out.at['Number of vaccine doses', g] = ''
+    p_store['SARS-CoV-2 Vaccination'] = chi_or_fisher(
+        int((df_combo['vacc'] == 'Yes').sum()),
+        len(df_combo) - int((df_combo['vacc'] == 'Yes').sum()),
+        int((df_mono['vacc'] == 'Yes').sum()),
+        len(df_mono) - int((df_mono['vacc'] == 'Yes').sum()),
+    )
+    p_store['Number of vaccine doses'] = p_categorical(pd.concat([df_combo, df_mono])['dose_group'])
     for g in groups:
         d = group_map[g]
         for cat in unique_order(df['dose_group'].dropna().unique(), dose_order):
             out.at[f'  *{cat}*', g] = fmt_count(d['dose_group'] == cat)
+    for cat in unique_order(df['dose_group'].dropna().unique(), dose_order):
+        a11 = int((df_combo['dose_group'] == cat).sum())
+        a12 = len(df_combo) - a11
+        a21 = int((df_mono['dose_group'] == cat).sum())
+        a22 = len(df_mono) - a21
+        p_store[f'  *{cat}*'] = chi_or_fisher(a11, a12, a21, a22)
     for g in groups:
         d = group_map[g]
         out.at['Thoracic CT changes', g] = fmt_count(d['ct'] == 'Yes')
+    p_store['Thoracic CT changes'] = chi_or_fisher(
+        int((df_combo['ct'] == 'Yes').sum()),
+        len(df_combo) - int((df_combo['ct'] == 'Yes').sum()),
+        int((df_mono['ct'] == 'Yes').sum()),
+        len(df_mono) - int((df_mono['ct'] == 'Yes').sum()),
+    )
 
     mode_rep = 'median'
     for g in groups:
         d = group_map[g]
         out.at['Duration of SARS-CoV-2 replication (days)', g] = fmt_num(d['rep'], mode_rep)
+    p_store['Duration of SARS-CoV-2 replication (days)'] = cont_test(
+        df_combo['rep'].dropna(),
+        df_mono['rep'].dropna(),
+    )
 
     for g in groups:
         d = group_map[g]
@@ -728,14 +822,33 @@ def build_table():
     out.at['SARS-CoV-2 genotype', 'Total'] = ''
     out.at['SARS-CoV-2 genotype', 'Combination'] = ''
     out.at['SARS-CoV-2 genotype', 'Monotherapy'] = ''
+    p_store['SARS-CoV-2 genotype'] = p_categorical(pd.concat([df_combo, df_mono])['variant'])
+    for cat in unique_order(df['variant'].unique(), var_order):
+        a11 = int((df_combo['variant'] == cat).sum())
+        a12 = len(df_combo) - a11
+        a21 = int((df_mono['variant'] == cat).sum())
+        a22 = len(df_mono) - a21
+        p_store[f'  *{cat}*'] = chi_or_fisher(a11, a12, a21, a22)
 
     for g in groups:
         d = group_map[g]
         out.at['Prolonged viral shedding (≥14 days)', g] = fmt_count(d['prolonged'])
+    p_store['Prolonged viral shedding (≥14 days)'] = chi_or_fisher(
+        int(df_combo['prolonged'].sum()),
+        len(df_combo) - int(df_combo['prolonged'].sum()),
+        int(df_mono['prolonged'].sum()),
+        len(df_mono) - int(df_mono['prolonged'].sum()),
+    )
 
     for g in groups:
         d = group_map[g]
         out.at['Survival', g] = fmt_count(d['survival'] == 'Yes')
+    p_store['Survival'] = chi_or_fisher(
+        int((df_combo['survival'] == 'Yes').sum()),
+        len(df_combo) - int((df_combo['survival'] == 'Yes').sum()),
+        int((df_mono['survival'] == 'Yes').sum()),
+        len(df_mono) - int((df_mono['survival'] == 'Yes').sum()),
+    )
 
     for g in groups:
         d = group_map[g]
@@ -745,6 +858,20 @@ def build_table():
     out.at['Adverse events', 'Total'] = ''
     out.at['Adverse events', 'Combination'] = ''
     out.at['Adverse events', 'Monotherapy'] = ''
+    p_store['Adverse events'] = p_categorical(pd.concat([df_combo, df_mono])['adverse'])
+    for cat in unique_order(df['adverse'].unique(), ae_order):
+        name = 'None (AE)' if cat == 'None' else cat
+        a11 = int((df_combo['adverse'] == cat).sum())
+        a12 = len(df_combo) - a11
+        a21 = int((df_mono['adverse'] == cat).sum())
+        a22 = len(df_mono) - a21
+        p_store[f'  *{name}*'] = chi_or_fisher(a11, a12, a21, a22)
+    out['p-value'] = ''
+    for r in rows:
+        if r in p_store:
+            out.at[r, 'p-value'] = fmt_p(p_store[r])
+    tested = sum(pd.notna(list(p_store.values())))
+    assert out['p-value'].str.len().gt(0).sum() == tested
     return out
 
 
