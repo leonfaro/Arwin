@@ -194,27 +194,37 @@ def build_tables():
     for c in ['Remdesivir', 'Molnupiravir', 'Standard 5-day NMV-r', 'Other antivirals']:
         add_rate(('First-line therapy\u00b9, n (%)', c), cat_t == c, cat_m == c, cat_c == c)
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
-    mon_t = total[COL_THERAPY].str.startswith('m', na=False)
-    com_t = total[COL_THERAPY].str.startswith('c', na=False)
+    com_flag_t = total[COL_THERAPY].str.startswith('c', na=False)
+    mono_flag_t = total[COL_THERAPY].str.startswith('m', na=False)
     idx = ('Last line therapy\u00b2, n (%)', 'Combination therapy')
-    t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(com_t.sum()), len(total))
+    t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(com_flag_t.sum()), len(total))
     t_x.at[idx, 'Subgroup monotherapy (n=33)'] = fmt_pct(0, len(mono))
     t_x.at[idx, 'Subgroup combination (n=57)'] = fmt_pct(len(combo), len(combo))
-    t_x.at[idx, 'p-value'] = ''
+    p_last = chi_or_fisher(len(combo), 0, 0, len(mono))
+    t_x.at[idx, 'p-value'] = f"{p_last:.3f}"
     idx = ('Last line therapy\u00b2, n (%)', 'Monotherapy')
-    t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(mon_t.sum()), len(total))
+    t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(mono_flag_t.sum()), len(total))
     t_x.at[idx, 'Subgroup monotherapy (n=33)'] = fmt_pct(len(mono), len(mono))
     t_x.at[idx, 'Subgroup combination (n=57)'] = fmt_pct(0, len(combo))
     t_x.at[idx, 'p-value'] = ''
     t_x.loc[('Last line therapy\u00b2, n (%)', '')] = ''
     single_t = courses_t == 1
-    single_m = courses_m == 1
-    single_c = courses_c == 1
-    add_rate(('Treatment courses, n (%)', 'Single prolonged course'), single_t, single_m, single_c)
     multi_t = courses_t > 1
+    single_m = courses_m == 1
     multi_m = courses_m > 1
+    single_c = courses_c == 1
     multi_c = courses_c > 1
-    add_rate(('Treatment courses, n (%)', 'Multiple courses'), multi_t, multi_m, multi_c)
+    row = ('Treatment courses, n (%)', 'Single prolonged course')
+    t_x.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(single_t.sum()), len(total))
+    t_x.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(single_m.sum()), len(mono))
+    t_x.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(single_c.sum()), len(combo))
+    row = ('Treatment courses, n (%)', 'Multiple courses')
+    t_x.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(multi_t.sum()), len(total))
+    t_x.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(int(multi_m.sum()), len(mono))
+    t_x.at[row, 'Subgroup combination (n=57)'] = fmt_pct(int(multi_c.sum()), len(combo))
+    p_course = chi_or_fisher(int(single_c.sum()), int(multi_c.sum()), int(single_m.sum()), int(multi_m.sum()))
+    t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'p-value'] = f"{p_course:.3f}"
+    t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'p-value'] = ''
     t_x.loc[('Treatment courses, n (%)', '')] = ''
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Primary Cohort (n=104)'] = fmt_iqr(days_t)
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Subgroup monotherapy (n=33)'] = fmt_iqr(days_m)
@@ -223,9 +233,9 @@ def build_tables():
     t_x.at[('Duration', 'Duration range, days'), 'Subgroup monotherapy (n=33)'] = fmt_range(days_m)
     t_x.at[('Duration', 'Duration range, days'), 'Subgroup combination (n=57)'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
-    p = cont_test(days_c.dropna(), days_m.dropna())
-    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = f"{p:.3f}"
-    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
+    p_dur = cont_test(days_m.dropna(), days_c.dropna())
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = f"{p_dur:.3f}"
+    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = f"{p_dur:.3f}"
     t_y_index = pd.MultiIndex.from_tuples(
         [
             ('Age, median (IQR)', ''),
