@@ -11,6 +11,7 @@ def test_columns():
         "Total",
         "Combination",
         "Monotherapy",
+        "p-value",
     ]
 
 
