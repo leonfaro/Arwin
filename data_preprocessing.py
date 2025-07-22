@@ -99,3 +99,9 @@ def fmt_iqr(series: pd.Series) -> str:
 
 def fmt_range(series: pd.Series) -> str:
     return f'{int(series.min())}-{int(series.max())}'
+
+
+if __name__ == '__main__':
+    print(TOTAL.shape)
+    print(MONO.shape)
+    print(COMBO.shape)

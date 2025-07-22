@@ -68,27 +68,26 @@ def build_table_x():
         else:
             t_x.at[row, 'p-value'] = ''
 
-    drug_map = {
-        'rdv': 'Remdesivir',
-        'remdesivir': 'Remdesivir',
-        'mpv': 'Molnupiravir',
-        'molnupiravir': 'Molnupiravir',
-    }
+    def flags(df):
+        s = df[COL_OTHER].astype(str).str.lower()
+        f_rdv = s.str.contains('rdv') | s.str.contains('remdesivir')
+        f_mpv = s.str.contains('mpv') | s.str.contains('molnupiravir')
+        f_pax = pd.to_numeric(df[COL_NMV_STD], errors='coerce').fillna(0) > 0
+        not_none = s.str.strip().ne('none') & s.str.contains('[a-z]', na=False)
+        f_oth = not_none & ~(f_rdv | f_mpv)
+        return f_pax, f_rdv, f_mpv, f_oth
 
-    def classify(row):
-        if pd.to_numeric(row[COL_NMV_STD], errors='coerce') >= 1:
-            return 'Standard 5-day Paxlovid'
-        txt = str(row[COL_OTHER]).lower()
-        for k, d in drug_map.items():
-            if k in txt:
-                return d
-        return 'Other antivirals'
-
-    cat_t = TOTAL.apply(classify, axis=1)
-    cat_m = MONO.apply(classify, axis=1)
-    cat_c = COMBO.apply(classify, axis=1)
-    for c in ['Remdesivir', 'Molnupiravir', 'Standard 5-day Paxlovid', 'Other antivirals']:
-        add_rate(('First-line therapy\u00b9, n (%)', c), cat_t == c, cat_m == c, cat_c == c)
+    f_t = flags(TOTAL)
+    f_m = flags(MONO)
+    f_c = flags(COMBO)
+    labels = [
+        'Standard 5-day Paxlovid',
+        'Remdesivir',
+        'Molnupiravir',
+        'Other antivirals',
+    ]
+    for lbl, ft, fm, fc in zip(labels, f_t, f_m, f_c):
+        add_rate(('First-line therapy\u00b9, n (%)', lbl), ft, fm, fc)
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)
