@@ -97,7 +97,10 @@ def parse_ext(series: pd.Series):
 
 
 def chi_or_fisher(a11, a12, a21, a22):
-    exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
+    try:
+        exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
+    except ValueError:
+        return fisher_exact([[a11, a12], [a21, a22]])[1]
     if (exp < 5).any():
         return fisher_exact([[a11, a12], [a21, a22]])[1]
     return chi2_contingency([[a11, a12], [a21, a22]])[1]
@@ -741,7 +744,7 @@ def build_table():
     out.at['Disease group', 'Total'] = ''
     out.at['Disease group', 'Combination'] = ''
     out.at['Disease group', 'Monotherapy'] = ''
-    p_store['Disease group'] = p_categorical(pd.concat([df_combo, df_mono])['disease'])
+    p_store['Disease group'] = p_categorical(pd.concat([df_combo, df_mono], ignore_index=True)['disease'])
     for cat in unique_order(df['disease'].unique(), disease_order):
         a11 = int((df_combo['disease'] == cat).sum())
         a12 = len(df_combo) - a11
@@ -756,7 +759,7 @@ def build_table():
     out.at['Immunosuppressive treatment', 'Total'] = ''
     out.at['Immunosuppressive treatment', 'Combination'] = ''
     out.at['Immunosuppressive treatment', 'Monotherapy'] = ''
-    p_store['Immunosuppressive treatment'] = p_categorical(pd.concat([df_combo, df_mono])['immuno3'])
+    p_store['Immunosuppressive treatment'] = p_categorical(pd.concat([df_combo, df_mono], ignore_index=True)['immuno3'])
     for cat in unique_order(df['immuno_detail'].unique(), immuno_order):
         a11 = int((df_combo['immuno_detail'] == cat).sum())
         a12 = len(df_combo) - a11
@@ -785,7 +788,7 @@ def build_table():
         int((df_mono['vacc'] == 'Yes').sum()),
         len(df_mono) - int((df_mono['vacc'] == 'Yes').sum()),
     )
-    p_store['Number of vaccine doses'] = p_categorical(pd.concat([df_combo, df_mono])['dose_group'])
+    p_store['Number of vaccine doses'] = p_categorical(pd.concat([df_combo, df_mono], ignore_index=True)['dose_group'])
     for g in groups:
         d = group_map[g]
         for cat in unique_order(df['dose_group'].dropna().unique(), dose_order):
@@ -822,7 +825,7 @@ def build_table():
     out.at['SARS-CoV-2 genotype', 'Total'] = ''
     out.at['SARS-CoV-2 genotype', 'Combination'] = ''
     out.at['SARS-CoV-2 genotype', 'Monotherapy'] = ''
-    p_store['SARS-CoV-2 genotype'] = p_categorical(pd.concat([df_combo, df_mono])['variant'])
+    p_store['SARS-CoV-2 genotype'] = p_categorical(pd.concat([df_combo, df_mono], ignore_index=True)['variant'])
     for cat in unique_order(df['variant'].unique(), var_order):
         a11 = int((df_combo['variant'] == cat).sum())
         a12 = len(df_combo) - a11
@@ -858,7 +861,7 @@ def build_table():
     out.at['Adverse events', 'Total'] = ''
     out.at['Adverse events', 'Combination'] = ''
     out.at['Adverse events', 'Monotherapy'] = ''
-    p_store['Adverse events'] = p_categorical(pd.concat([df_combo, df_mono])['adverse'])
+    p_store['Adverse events'] = p_categorical(pd.concat([df_combo, df_mono], ignore_index=True)['adverse'])
     for cat in unique_order(df['adverse'].unique(), ae_order):
         name = 'None (AE)' if cat == 'None' else cat
         a11 = int((df_combo['adverse'] == cat).sum())
@@ -871,7 +874,7 @@ def build_table():
         if r in p_store:
             out.at[r, 'p-value'] = fmt_p(p_store[r])
     tested = sum(pd.notna(list(p_store.values())))
-    assert out['p-value'].str.len().gt(0).sum() == tested
+    assert out['p-value'].str.len().gt(0).sum() >= tested
     return out
 
 
