@@ -151,33 +151,39 @@ def build_tables():
     days_t, courses_t = parse_ext(total[COL_EXT])
     days_m, courses_m = parse_ext(mono[COL_EXT])
     days_c, courses_c = parse_ext(combo[COL_EXT])
-    t_x_rows = [
-        'N=',
-        'First-line therapy\u00b9, n (%)',
-        'Remdesivir',
-        'Molnupiravir',
-        'Standard 5-day NMV-r',
-        'Other antivirals',
-        'Last line therapy\u00b2, n (%)',
-        'Combination therapy',
-        'Monotherapy',
-        'Treatment courses, n (%)',
-        'Single prolonged course',
-        'Multiple courses',
-        'Duration',
-        'Median duration, days (IQR)',
-        'Duration range, days',
-    ]
-    t_x = pd.DataFrame(index=t_x_rows, columns=[
+    t_x_index = pd.MultiIndex.from_tuples(
+        [
+            ('N=', ''),
+            ('First-line therapy\u00b9, n (%)', ''),
+            ('First-line therapy\u00b9, n (%)', 'Remdesivir'),
+            ('First-line therapy\u00b9, n (%)', 'Molnupiravir'),
+            (
+                'First-line therapy\u00b9, n (%)',
+                'Standard 5-day NMV-r',
+            ),
+            ('First-line therapy\u00b9, n (%)', 'Other antivirals'),
+            ('Last line therapy\u00b2, n (%)', ''),
+            ('Last line therapy\u00b2, n (%)', 'Combination therapy'),
+            ('Last line therapy\u00b2, n (%)', 'Monotherapy'),
+            ('Treatment courses, n (%)', ''),
+            ('Treatment courses, n (%)', 'Single prolonged course'),
+            ('Treatment courses, n (%)', 'Multiple courses'),
+            ('Duration', ''),
+            ('Duration', 'Median duration, days (IQR)'),
+            ('Duration', 'Duration range, days'),
+        ],
+        names=['Category', 'Subcategory'],
+    )
+    t_x = pd.DataFrame(index=t_x_index, columns=[
         'Primary Cohort (n=104)',
         'Subgroup monotherapy (n=33)',
         'Subgroup combination (n=57)',
         'p-value',
     ])
-    t_x.at['N=', 'Primary Cohort (n=104)'] = len(total)
-    t_x.at['N=', 'Subgroup monotherapy (n=33)'] = len(mono)
-    t_x.at['N=', 'Subgroup combination (n=57)'] = len(combo)
-    t_x.at['N=', 'p-value'] = ''
+    t_x.at[('N=', ''), 'Primary Cohort (n=104)'] = len(total)
+    t_x.at[('N=', ''), 'Subgroup monotherapy (n=33)'] = len(mono)
+    t_x.at[('N=', ''), 'Subgroup combination (n=57)'] = len(combo)
+    t_x.at[('N=', ''), 'p-value'] = ''
 
     def add_rate(row, ser_total, ser_mono, ser_combo):
         t_x.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(ser_total.sum()), len(total))
@@ -209,38 +215,40 @@ def build_tables():
     cat_m = mono.apply(classify, axis=1)
     cat_c = combo.apply(classify, axis=1)
     for c in ['Remdesivir', 'Molnupiravir', 'Standard 5-day NMV-r', 'Other antivirals']:
-        add_rate(c, cat_t == c, cat_m == c, cat_c == c)
-    t_x.loc['First-line therapy\u00b9, n (%)'] = ''
+        add_rate(('First-line therapy\u00b9, n (%)', c), cat_t == c, cat_m == c, cat_c == c)
+    t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     mon_t = total[COL_THERAPY].str.startswith('m', na=False)
     com_t = total[COL_THERAPY].str.startswith('c', na=False)
-    t_x.at['Combination therapy', 'Primary Cohort (n=104)'] = fmt_pct(int(com_t.sum()), len(total))
-    t_x.at['Combination therapy', 'Subgroup monotherapy (n=33)'] = fmt_pct(0, len(mono))
-    t_x.at['Combination therapy', 'Subgroup combination (n=57)'] = fmt_pct(len(combo), len(combo))
-    t_x.at['Combination therapy', 'p-value'] = ''
-    t_x.at['Monotherapy', 'Primary Cohort (n=104)'] = fmt_pct(int(mon_t.sum()), len(total))
-    t_x.at['Monotherapy', 'Subgroup monotherapy (n=33)'] = fmt_pct(len(mono), len(mono))
-    t_x.at['Monotherapy', 'Subgroup combination (n=57)'] = fmt_pct(0, len(combo))
-    t_x.at['Monotherapy', 'p-value'] = ''
-    t_x.loc['Last line therapy\u00b2, n (%)'] = ''
+    idx = ('Last line therapy\u00b2, n (%)', 'Combination therapy')
+    t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(com_t.sum()), len(total))
+    t_x.at[idx, 'Subgroup monotherapy (n=33)'] = fmt_pct(0, len(mono))
+    t_x.at[idx, 'Subgroup combination (n=57)'] = fmt_pct(len(combo), len(combo))
+    t_x.at[idx, 'p-value'] = ''
+    idx = ('Last line therapy\u00b2, n (%)', 'Monotherapy')
+    t_x.at[idx, 'Primary Cohort (n=104)'] = fmt_pct(int(mon_t.sum()), len(total))
+    t_x.at[idx, 'Subgroup monotherapy (n=33)'] = fmt_pct(len(mono), len(mono))
+    t_x.at[idx, 'Subgroup combination (n=57)'] = fmt_pct(0, len(combo))
+    t_x.at[idx, 'p-value'] = ''
+    t_x.loc[('Last line therapy\u00b2, n (%)', '')] = ''
     single_t = courses_t == 1
     single_m = courses_m == 1
     single_c = courses_c == 1
-    add_rate('Single prolonged course', single_t, single_m, single_c)
+    add_rate(('Treatment courses, n (%)', 'Single prolonged course'), single_t, single_m, single_c)
     multi_t = courses_t > 1
     multi_m = courses_m > 1
     multi_c = courses_c > 1
-    add_rate('Multiple courses', multi_t, multi_m, multi_c)
-    t_x.loc['Treatment courses, n (%)'] = ''
-    t_x.at['Median duration, days (IQR)', 'Primary Cohort (n=104)'] = fmt_iqr(days_t)
-    t_x.at['Median duration, days (IQR)', 'Subgroup monotherapy (n=33)'] = fmt_iqr(days_m)
-    t_x.at['Median duration, days (IQR)', 'Subgroup combination (n=57)'] = fmt_iqr(days_c)
-    t_x.at['Duration range, days', 'Primary Cohort (n=104)'] = fmt_range(days_t)
-    t_x.at['Duration range, days', 'Subgroup monotherapy (n=33)'] = fmt_range(days_m)
-    t_x.at['Duration range, days', 'Subgroup combination (n=57)'] = fmt_range(days_c)
-    t_x.loc['Duration'] = ''
+    add_rate(('Treatment courses, n (%)', 'Multiple courses'), multi_t, multi_m, multi_c)
+    t_x.loc[('Treatment courses, n (%)', '')] = ''
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Primary Cohort (n=104)'] = fmt_iqr(days_t)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Subgroup monotherapy (n=33)'] = fmt_iqr(days_m)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Subgroup combination (n=57)'] = fmt_iqr(days_c)
+    t_x.at[('Duration', 'Duration range, days'), 'Primary Cohort (n=104)'] = fmt_range(days_t)
+    t_x.at[('Duration', 'Duration range, days'), 'Subgroup monotherapy (n=33)'] = fmt_range(days_m)
+    t_x.at[('Duration', 'Duration range, days'), 'Subgroup combination (n=57)'] = fmt_range(days_c)
+    t_x.loc[('Duration', '')] = ''
     p = p_cont(pd.concat([days_c, days_m]).reset_index(drop=True), labels)
-    t_x.at['Median duration, days (IQR)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
-    t_x.at['Duration range, days', 'p-value'] = ''
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
     t_y_rows = [
         'N=',
         'Age, median (IQR)',
