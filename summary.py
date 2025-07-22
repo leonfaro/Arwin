@@ -189,22 +189,27 @@ def build_tables():
         else:
             t_x.at[row, 'p-value'] = ''
 
-    remd_t = total[COL_OTHER].fillna('').str.contains('RDV', case=False)
-    remd_m = mono[COL_OTHER].fillna('').str.contains('RDV', case=False)
-    remd_c = combo[COL_OTHER].fillna('').str.contains('RDV', case=False)
-    add_rate('Remdesivir', remd_t, remd_m, remd_c)
-    moln_t = total[COL_OTHER].fillna('').str.contains('MPV', case=False)
-    moln_m = mono[COL_OTHER].fillna('').str.contains('MPV', case=False)
-    moln_c = combo[COL_OTHER].fillna('').str.contains('MPV', case=False)
-    add_rate('Molnupiravir', moln_t, moln_m, moln_c)
-    nmv_t = pd.to_numeric(total[COL_NMV_STD], errors='coerce') > 0
-    nmv_m = pd.to_numeric(mono[COL_NMV_STD], errors='coerce') > 0
-    nmv_c = pd.to_numeric(combo[COL_NMV_STD], errors='coerce') > 0
-    add_rate('Standard 5-day NMV-r', nmv_t, nmv_m, nmv_c)
-    oth_t = (~total[COL_OTHER].fillna('').str.lower().str.contains('none')) & ~remd_t & ~moln_t
-    oth_m = (~mono[COL_OTHER].fillna('').str.lower().str.contains('none')) & ~remd_m & ~moln_m
-    oth_c = (~combo[COL_OTHER].fillna('').str.lower().str.contains('none')) & ~remd_c & ~moln_c
-    add_rate('Other antivirals', oth_t, oth_m, oth_c)
+    drug_map = {
+        'rdv': 'Remdesivir',
+        'remdesivir': 'Remdesivir',
+        'mpv': 'Molnupiravir',
+        'molnupiravir': 'Molnupiravir',
+    }
+
+    def classify(row):
+        if pd.to_numeric(row[COL_NMV_STD], errors='coerce') >= 1:
+            return 'Standard 5-day NMV-r'
+        txt = str(row[COL_OTHER]).lower()
+        for k, d in drug_map.items():
+            if k in txt:
+                return d
+        return 'Other antivirals'
+
+    cat_t = total.apply(classify, axis=1)
+    cat_m = mono.apply(classify, axis=1)
+    cat_c = combo.apply(classify, axis=1)
+    for c in ['Remdesivir', 'Molnupiravir', 'Standard 5-day NMV-r', 'Other antivirals']:
+        add_rate(c, cat_t == c, cat_m == c, cat_c == c)
     t_x.loc['First-line therapy\u00b9, n (%)'] = ''
     mon_t = total[COL_THERAPY].str.startswith('m', na=False)
     com_t = total[COL_THERAPY].str.startswith('c', na=False)
