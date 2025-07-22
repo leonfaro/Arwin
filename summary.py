@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-from statsmodels.stats.multitest import multipletests
 import re
 
 FILES = {"mono": "Monotherapy.xlsx", "comb": "Combination.xlsx"}
@@ -634,60 +633,8 @@ def build_table():
     df_total = transform(df_total)
     df_combo = transform(df_combo)
     df_mono = transform(df_mono)
-    df_compare = pd.concat([df_combo, df_mono], ignore_index=True)
     group_map = {'Total': df_total, 'Combination': df_combo, 'Monotherapy': df_mono}
     df = df_total
-
-    def chi2_perm(series):
-        cats = pd.Categorical(series)
-        obs_tab = pd.crosstab(cats, df_compare['therapy'])
-        obs = chi2_contingency(obs_tab, correction=False)[0]
-        codes = cats.codes
-        labels = df_compare['therapy'].values.copy()
-        rng = np.random.default_rng(0)
-        cnt = 0
-        for _ in range(10000):
-            rng.shuffle(labels)
-            perm = np.zeros(obs_tab.shape)
-            for i in range(len(cats.categories)):
-                mask = codes == i
-                perm[i, 0] = np.sum(labels[mask] == 'Combination')
-                perm[i, 1] = np.sum(labels[mask] == 'Monotherapy')
-            val = chi2_contingency(perm, correction=False)[0]
-            if val >= obs:
-                cnt += 1
-        return cnt / 10000
-
-    def p_categorical(series):
-        mask = df_compare['therapy'].isin(['Combination', 'Monotherapy'])
-        if series[mask].nunique() < 2 or mask.sum() == 0:
-            return np.nan
-        table = pd.crosstab(series[mask], df_compare.loc[mask, 'therapy'])
-        exp = np.outer(table.sum(axis=1), table.sum(axis=0)) / table.values.sum()
-        if series.nunique() == 2:
-            if (exp < 5).any():
-                return fisher_exact(table)[1]
-            return chi2_contingency(table, correction=False)[1]
-        if (exp < 5).any():
-            return chi2_perm(series)
-        return chi2_contingency(table, correction=False)[1]
-
-    def p_continuous(series):
-        g1 = series[df_compare['therapy'] == 'Combination'].dropna()
-        g2 = series[df_compare['therapy'] == 'Monotherapy'].dropna()
-        if g1.empty or g2.empty:
-            return np.nan, 'median'
-        n1 = len(g1)
-        n2 = len(g2)
-        normal = (
-            n1 >= 30
-            and n2 >= 30
-            and (n1 < 3 or shapiro(g1).pvalue > 0.05)
-            and (n2 < 3 or shapiro(g2).pvalue > 0.05)
-        )
-        if normal:
-            return ttest_ind(g1, g2, equal_var=False).pvalue, 'mean'
-        return mannwhitneyu(g1, g2, alternative='two-sided').pvalue, 'median'
 
     def fmt_num(x, typ):
         if typ == 'mean':
@@ -721,24 +668,20 @@ def build_table():
     rows += [f'  *{i}*' for i in unique_order(df['adverse'].unique(), ae_order)]
 
     groups = ['Total', 'Combination', 'Monotherapy']
-    cols = groups + ['p-Value', 'q-Value', 'Sig']
+    cols = groups
     out = pd.DataFrame(index=rows, columns=cols)
     out.loc['N=', 'Total'] = len(df_total)
     out.loc['N=', 'Combination'] = len(df_combo)
     out.loc['N=', 'Monotherapy'] = len(df_mono)
 
-    p_store = {}
-
-    p_store['Age'], mode_age = p_continuous(df_compare[col_age])
     for g in groups:
         d = group_map[g]
-        out.at['Age', g] = fmt_num(d[col_age], mode_age)
+        out.at['Age', g] = fmt_num(d[col_age], 'median')
 
     female = df[col_sex].map(is_female)
     for g in groups:
         d = group_map[g]
         out.at['Sex (female)', g] = fmt_count(female.loc[d.index].fillna(False))
-    p_store['Sex (female)'] = p_categorical(female.loc[df_compare.index])
 
     for g in groups:
         d = group_map[g]
@@ -747,9 +690,6 @@ def build_table():
     out.at['Disease group', 'Total'] = ''
     out.at['Disease group', 'Combination'] = ''
     out.at['Disease group', 'Monotherapy'] = ''
-    p_store['Disease group'] = p_categorical(df_compare['disease'])
-    for cat in unique_order(df['disease'].unique(), disease_order):
-        p_store[f'  *{cat}*'] = p_categorical(df_compare['disease'] == cat)
 
     for g in groups:
         d = group_map[g]
@@ -758,35 +698,25 @@ def build_table():
     out.at['Immunosuppressive treatment', 'Total'] = ''
     out.at['Immunosuppressive treatment', 'Combination'] = ''
     out.at['Immunosuppressive treatment', 'Monotherapy'] = ''
-    p_store['Immunosuppressive treatment'] = p_categorical(df_compare['immuno3'])
-    for cat in unique_order(df['immuno_detail'].unique(), immuno_order):
-        p_store[f'  *{cat}*'] = p_categorical(df_compare['immuno_detail'] == cat)
 
     for g in groups:
         d = group_map[g]
         out.at['Glucocorticoid use', g] = fmt_count(d['gc'] == 'Yes')
-    p_store['Glucocorticoid use'] = p_categorical(df_compare['gc'] == 'Yes')
 
     for g in groups:
         d = group_map[g]
         out.at['SARS-CoV-2 Vaccination', g] = fmt_count(d['vacc'] == 'Yes')
     for g in groups:
         out.at['Number of vaccine doses', g] = ''
-    p_store['SARS-CoV-2 Vaccination'] = p_categorical(df_compare['vacc'] == 'Yes')
-    p_store['Number of vaccine doses'] = p_categorical(df_compare['dose_group'])
     for g in groups:
         d = group_map[g]
         for cat in unique_order(df['dose_group'].dropna().unique(), dose_order):
             out.at[f'  *{cat}*', g] = fmt_count(d['dose_group'] == cat)
-    for cat in unique_order(df['dose_group'].dropna().unique(), dose_order):
-        p_store[f'  *{cat}*'] = p_categorical(df_compare['dose_group'] == cat)
-
     for g in groups:
         d = group_map[g]
         out.at['Thoracic CT changes', g] = fmt_count(d['ct'] == 'Yes')
-    p_store['Thoracic CT changes'] = p_categorical(df_compare['ct'] == 'Yes')
 
-    p_store['Duration of SARS-CoV-2 replication (days)'], mode_rep = p_continuous(df_compare['rep'])
+    mode_rep = 'median'
     for g in groups:
         d = group_map[g]
         out.at['Duration of SARS-CoV-2 replication (days)', g] = fmt_num(d['rep'], mode_rep)
@@ -798,19 +728,14 @@ def build_table():
     out.at['SARS-CoV-2 genotype', 'Total'] = ''
     out.at['SARS-CoV-2 genotype', 'Combination'] = ''
     out.at['SARS-CoV-2 genotype', 'Monotherapy'] = ''
-    p_store['SARS-CoV-2 genotype'] = p_categorical(df_compare['variant'])
-    for cat in unique_order(df['variant'].unique(), var_order):
-        p_store[f'  *{cat}*'] = p_categorical(df_compare['variant'] == cat)
 
     for g in groups:
         d = group_map[g]
         out.at['Prolonged viral shedding (≥14 days)', g] = fmt_count(d['prolonged'])
-    p_store['Prolonged viral shedding (≥14 days)'] = p_categorical(df_compare['prolonged'])
 
     for g in groups:
         d = group_map[g]
         out.at['Survival', g] = fmt_count(d['survival'] == 'Yes')
-    p_store['Survival'] = p_categorical(df_compare['survival'] == 'Yes')
 
     for g in groups:
         d = group_map[g]
@@ -820,27 +745,6 @@ def build_table():
     out.at['Adverse events', 'Total'] = ''
     out.at['Adverse events', 'Combination'] = ''
     out.at['Adverse events', 'Monotherapy'] = ''
-    p_store['Adverse events'] = p_categorical(df_compare['adverse'])
-    for cat in unique_order(df['adverse'].unique(), ae_order):
-        name = 'None (AE)' if cat == 'None' else cat
-        p_store[f'  *{name}*'] = p_categorical(df_compare['adverse'] == cat)
-
-    pvals = pd.Series(p_store)
-    mask = pvals.notna()
-    qs = pd.Series(index=pvals.index, dtype=float)
-    qs[mask] = multipletests(pvals[mask], method='fdr_bh')[1]
-
-    out['p-Value'] = pvals.apply(
-        lambda x: '<0.001' if x < 0.001 else f'{x:.3f}' if pd.notna(x) else ''
-    )
-    out['q-Value'] = qs.apply(
-        lambda x: '' if pd.isna(x) else ('<0.001' if x < 0.001 else f'{x:.3f}')
-    )
-    out['Sig'] = qs.apply(
-        lambda x: '***'
-        if pd.notna(x) and x <= 0.001
-        else ('**' if pd.notna(x) and x <= 0.01 else ('*' if pd.notna(x) and x <= 0.05 else ''))
-    )
     return out
 
 
