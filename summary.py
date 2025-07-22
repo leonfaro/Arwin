@@ -249,48 +249,51 @@ def build_tables():
     p = p_cont(pd.concat([days_c, days_m]).reset_index(drop=True), labels)
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
-    t_y_rows = [
-        'N=',
-        'Age, median (IQR)',
-        'Female sex, n (%)',
-        'Underlying conditions, n (%)',
-        'Hematological malignancy',
-        'Autoimmune',
-        'Transplantation',
-        'Immunosuppressive treatment, n (%)',
-        'Anti-CD20',
-        'CAR-T',
-        'HSCT',
-        'None',
-        'Glucocorticoid use, n (%)',
-        'SARS-CoV-2 vaccination, n (%)',
-        'Vaccination doses, n (range)',
-        'Thoracic CT changes, n (%)',
-        'Treatment setting\u00b9, n (%)',
-        'Hospital',
-        'Outpatient',
-    ]
-    t_y = pd.DataFrame(index=t_y_rows, columns=[
+    t_y_index = pd.MultiIndex.from_tuples(
+        [
+            ('N=', ''),
+            ('Age, median (IQR)', ''),
+            ('Female sex, n (%)', ''),
+            ('Underlying conditions, n (%)', ''),
+            ('Underlying conditions, n (%)', 'Hematological malignancy'),
+            ('Underlying conditions, n (%)', 'Autoimmune'),
+            ('Underlying conditions, n (%)', 'Transplantation'),
+            ('Immunosuppressive treatment, n (%)', ''),
+            ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
+            ('Immunosuppressive treatment, n (%)', 'CAR-T'),
+            ('Immunosuppressive treatment, n (%)', 'HSCT'),
+            ('Immunosuppressive treatment, n (%)', 'None'),
+            ('Glucocorticoid use, n (%)', ''),
+            ('SARS-CoV-2 vaccination, n (%)', ''),
+            ('Vaccination doses, n (range)', ''),
+            ('Thoracic CT changes, n (%)', ''),
+            ('Treatment setting\u00b9, n (%)', ''),
+            ('Treatment setting\u00b9, n (%)', 'Hospital'),
+            ('Treatment setting\u00b9, n (%)', 'Outpatient'),
+        ],
+        names=['Category', 'Subcategory'],
+    )
+    t_y = pd.DataFrame(index=t_y_index, columns=[
         'Primary Cohort (n=104)',
         'Subgroup monotherapy (n=33)',
         'Subgroup combination (n=57)',
         'p-value',
     ])
-    t_y.at['N=', 'Primary Cohort (n=104)'] = len(total)
-    t_y.at['N=', 'Subgroup monotherapy (n=33)'] = len(mono)
-    t_y.at['N=', 'Subgroup combination (n=57)'] = len(combo)
-    t_y.at['N=', 'p-value'] = ''
-    t_y.loc['Underlying conditions, n (%)'] = ''
-    t_y.loc['Immunosuppressive treatment, n (%)'] = ''
-    t_y.loc['Treatment setting\u00b9, n (%)'] = ''
+    t_y.at[('N=', ''), 'Primary Cohort (n=104)'] = len(total)
+    t_y.at[('N=', ''), 'Subgroup monotherapy (n=33)'] = len(mono)
+    t_y.at[('N=', ''), 'Subgroup combination (n=57)'] = len(combo)
+    t_y.at[('N=', ''), 'p-value'] = ''
+    t_y.loc[('Underlying conditions, n (%)', '')] = ''
+    t_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    t_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     age_t = total[COL_AGE]
     age_m = mono[COL_AGE]
     age_c = combo[COL_AGE]
-    t_y.at['Age, median (IQR)', 'Primary Cohort (n=104)'] = fmt_iqr(age_t)
-    t_y.at['Age, median (IQR)', 'Subgroup monotherapy (n=33)'] = fmt_iqr(age_m)
-    t_y.at['Age, median (IQR)', 'Subgroup combination (n=57)'] = fmt_iqr(age_c)
+    t_y.at[('Age, median (IQR)', ''), 'Primary Cohort (n=104)'] = fmt_iqr(age_t)
+    t_y.at[('Age, median (IQR)', ''), 'Subgroup monotherapy (n=33)'] = fmt_iqr(age_m)
+    t_y.at[('Age, median (IQR)', ''), 'Subgroup combination (n=57)'] = fmt_iqr(age_c)
     p = p_cont(pd.concat([age_c, age_m]).reset_index(drop=True), labels)
-    t_y.at['Age, median (IQR)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+    t_y.at[('Age, median (IQR)', ''), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
     female_t = total[COL_SEX].str.lower().str.startswith('f')
     female_m = mono[COL_SEX].str.lower().str.startswith('f')
     female_c = combo[COL_SEX].str.lower().str.startswith('f')
@@ -305,45 +308,45 @@ def build_tables():
         else:
             t_y.at[row, 'p-value'] = ''
 
-    add_y('Female sex, n (%)', female_t, female_m, female_c)
+    add_y(('Female sex, n (%)', ''), female_t, female_m, female_c)
     dis_t = total[COL_DIS].map(group_disease)
     dis_m = mono[COL_DIS].map(group_disease)
     dis_c = combo[COL_DIS].map(group_disease)
     for cat in ['Hematological malignancy', 'Autoimmune', 'Transplantation']:
-        add_y(cat, dis_t == cat, dis_m == cat, dis_c == cat)
+        add_y(('Underlying conditions, n (%)', cat), dis_t == cat, dis_m == cat, dis_c == cat)
     imm_t = total[COL_BASE].map(group_immuno)
     imm_m = mono[COL_BASE].map(group_immuno)
     imm_c = combo[COL_BASE].map(group_immuno)
     for cat in ['Anti-CD20', 'CAR-T', 'HSCT', 'None']:
-        add_y(cat, imm_t == cat, imm_m == cat, imm_c == cat)
+        add_y(('Immunosuppressive treatment, n (%)', cat), imm_t == cat, imm_m == cat, imm_c == cat)
     gc_t = total[COL_GC].map(flag_gc) == 'Yes'
     gc_m = mono[COL_GC].map(flag_gc) == 'Yes'
     gc_c = combo[COL_GC].map(flag_gc) == 'Yes'
-    add_y('Glucocorticoid use, n (%)', gc_t, gc_m, gc_c)
+    add_y(('Glucocorticoid use, n (%)', ''), gc_t, gc_m, gc_c)
     vacc_t = total[COL_VACC].map(lambda x: parse_vacc(x)[0]) == 'Yes'
     vacc_m = mono[COL_VACC].map(lambda x: parse_vacc(x)[0]) == 'Yes'
     vacc_c = combo[COL_VACC].map(lambda x: parse_vacc(x)[0]) == 'Yes'
-    add_y('SARS-CoV-2 vaccination, n (%)', vacc_t, vacc_m, vacc_c)
+    add_y(('SARS-CoV-2 vaccination, n (%)', ''), vacc_t, vacc_m, vacc_c)
     doses_t = total[COL_VACC].map(lambda x: parse_vacc(x)[1])
     doses_m = mono[COL_VACC].map(lambda x: parse_vacc(x)[1])
     doses_c = combo[COL_VACC].map(lambda x: parse_vacc(x)[1])
-    t_y.at['Vaccination doses, n (range)', 'Primary Cohort (n=104)'] = fmt_range(doses_t.dropna())
-    t_y.at['Vaccination doses, n (range)', 'Subgroup monotherapy (n=33)'] = fmt_range(doses_m.dropna())
-    t_y.at['Vaccination doses, n (range)', 'Subgroup combination (n=57)'] = fmt_range(doses_c.dropna())
+    t_y.at[('Vaccination doses, n (range)', ''), 'Primary Cohort (n=104)'] = fmt_range(doses_t.dropna())
+    t_y.at[('Vaccination doses, n (range)', ''), 'Subgroup monotherapy (n=33)'] = fmt_range(doses_m.dropna())
+    t_y.at[('Vaccination doses, n (range)', ''), 'Subgroup combination (n=57)'] = fmt_range(doses_c.dropna())
     p = p_cont(pd.concat([doses_c, doses_m]).reset_index(drop=True), labels)
-    t_y.at['Vaccination doses, n (range)', 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
+    t_y.at[('Vaccination doses, n (range)', ''), 'p-value'] = '' if pd.isna(p) else f"{p:.3f}"
     ct_t = total[COL_CT].map(group_ct) == 'Yes'
     ct_m = mono[COL_CT].map(group_ct) == 'Yes'
     ct_c = combo[COL_CT].map(group_ct) == 'Yes'
-    add_y('Thoracic CT changes, n (%)', ct_t, ct_m, ct_c)
+    add_y(('Thoracic CT changes, n (%)', ''), ct_t, ct_m, ct_c)
     hosp_t = total[COL_HOSP].str.lower().str.startswith('y')
     hosp_m = mono[COL_HOSP].str.lower().str.startswith('y')
     hosp_c = combo[COL_HOSP].str.lower().str.startswith('y')
-    add_y('Hospital', hosp_t, hosp_m, hosp_c)
+    add_y(('Treatment setting\u00b9, n (%)', 'Hospital'), hosp_t, hosp_m, hosp_c)
     out_t = total[COL_HOSP].str.lower().str.startswith('n')
     out_m = mono[COL_HOSP].str.lower().str.startswith('n')
     out_c = combo[COL_HOSP].str.lower().str.startswith('n')
-    add_y('Outpatient', out_t, out_m, out_c)
+    add_y(('Treatment setting\u00b9, n (%)', 'Outpatient'), out_t, out_m, out_c)
     return t_x, t_y
 
 
