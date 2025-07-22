@@ -1,0 +1,86 @@
+﻿"first author
+(year)","Baseline disease cohort 
+[a=autoimmunity, m=malignancy, t=transplant]",study specific case/patient ID number,"sex
+[male, female]",age,baseline disease,baseline therapy,"Vaccination 
+[yes / no] (doses)","Hospitalization
+[yes / no]",SARS-CoV-2 genotype,"CT lung changes?
+[yes / no]","SARS-CoV-2 replication
+[days]","any glucocorticosteroid usage
+[yes / no]","1st line treatment any other antiviral drugs 
+(days) [dosage]","1st line standard or prolonged NMV-r treatment
+[yes / no]","1st line NMV-r standard duration treatment courses 
+(n)","2nd line treatment form of therapy 
+[m / c]
+mono: only NMV-r
+combination: NMV-r + any other antiviral drugs","2nd line extended NMV-r treatment 
+(total days) [courses]","2nd line any other concomitant antiviral therapy 
+(days)  [dosages]","any adverse events
+[yes / no]",type of adverse event,"eradication outcome successful
+[yes / no]","survival outcome
+[yes / no]"
+"Almarhabi
+(2024)",m,n/a,m,63,B-ALL,RTX + Mini-Hyper-CVD + inotuzumab-ozogamicin → blinatumomab → POMP,y (3),y,n/a,y,167,y,RDV (5),n,0,m,10 [1],none,n,n,y,y
+"Breeden
+(2023)",m,1,f,79,FL,lenalidomide + RTX + zandelisib + epcoritamab,y (3),y,BA.1.1,y,244,n,MPV (n/a) → TIX-CIL (n/a),n,0,m,21 [1],none,n,n,y,y
+"Breeden
+(2023)",m,3,m,72,MCL,venetoclax + lenalidomide + RTX  → lenalidomide,y (2),n/a,BA.5.2.1,y,91,n,BEB [1] → RDV (10),n,0,m,15 [1],none,n,n,y,y
+"Breeden
+(2023)",m,4,f,60,"MM, B-ALL",ASCT → cCYC + daunorubicin + vincristine +prednisone + RTX + peg-asparaginase  → RTX,y (4),n/a,BF.28,y,61,n,TIX-CIL [2] → RDV (7) → RDV (7) → BEB [1],y,1,m,21 [1],none,n,n,y,y
+"Götz
+(2023)",t,FR_1,m,60,Kidney-TX,PDN +  TAC + MMF,y (5),y,n/a,n/a,21,none,MPV (5),n,0,m,10 (1),RDV 10 (1),n,n,y,y
+"Götz
+(2023)",a,FR_2,m,71,ANCA-associated Glomerulonephritis + IgA Nephropathy,RTX + Cyclophosphamid + PDN,y (4),y,n/a,n/a,14,none,none,n,0,m,7 (1),RDV 7 (1),n,n,y,y
+"Götz
+(2023)",t,FR_3,m,71,Lung-TX,TAC + MMF + PDN,y (?),y,n/a,y,61,none,MPV (5),n,0,m,10 (1),RDV 10 (1),n,n,y,y
+"Götz
+(2023)","a, t",FR_8,m,48,Systemic sclerosis + Lung-TX,PDN + TAC + MMF + Everolimus,y (min. 2),y,BA.2,y,213,PDN,RDV (5),n,0,m,10 (1),none,n,n,n,y
+"Ito
+(2024)",m,1,m,68,FL,OBI + BEN,y (4),y,BA.5.2.47,y,79,y,RDV (25) → MPV (n/a) → TIX-CIL [n/a],n,0,m,35 [1],none,y,acute acalculous cholecystitis,y,y
+"Lindahl
+(2023)",m,n/a,m,72,FL,BEN + RTX  → R-CHOP  → R-GEMOX,y (4),y,n/a,y,130,y,TIX-CIL [1] → RDV (4),y,1,m,36 [2],none,n,n,y,y
+"Liu
+(2023)",m,#1,m,34,B-ALL,Vincristine + RTX,y (3),n/a,BA.1.1,y,156,n,SOT [1],n,0,m,15 [1],none,n,n,y,y
+"Liu
+(2023)",m,#2,m,55,B-ALL,ASCT,y (2),n/a,BA.1.1,y,160,n,BEB [1],n,1,m,18 [1],none,n,n,y,y
+"Longo
+(2023)",m,#10,n/a,70,LPL,RTX + BEN,yes (≥2),n/a,n/a,n/a,93,n,none,n,0,m,10 [1],none,n,n,y,y
+"Maruyama
+(2024)",m,8,f,63,LPL,DRC  → RB,y (3),n/a,BA.2.3,n/a,41,n,CAS-IMD [1] → RDV (4),n,0,m,10 [1],none,n,n,y,y
+"Maruyama
+(2024)",m,26,m,78,DLBCL,R-CHOP  → RB  → Rm → Pola-BR,y (5),n/a,BA.5.2.1,n/a,33,y,CAS-IMD [1] → TIX-CIL [1] → RDV (10) → ENS (10),n,1,m,10 [1],none,n,n,n,y
+"Maruyama
+(2024)",m,38,m,54,FL,GB  → Rm,n,n/a,XBB.1.16.1,n/a,21,n,SOT [1] → ENS (10),n,0,m,10 [1],none,n,n,y,y
+"Maruyama
+(2024)",m,43,f,60,FL,GB,n,n/a,EG.5.1.6,n/a,29,y,SOT [1] → TIX-CIL [1] → RDV (5),y,1,m,10 [1],none,n,n,y,y
+"Piñana
+(2023)",m,676-75,m,72,AML,Aza-Ven,y (2),n,n/a,n,53,n,none,n,0,m,10 (1),none,n,n,y,y
+"Piñana
+(2023)",m,676-76,m,29,FL,RTX,y (3),n,n/a,n,91,n,none,n,0,m,10 (1),none,n,n,y,y
+"Piñana
+(2023)",m,676-88,m,38,FL,R-CHOP,y (3),n,n/a,n,62,n,none,n,0,m,15 (1),none,n,n,y,y
+"Piñana
+(2023)",m,45,m,72,NHL,n/a,y (4),y,n/a,n,25,y,none,n,0,m,15 (1),none,n,n,n/a,y
+"Piñana
+(2023)",m,676-85,m,58,FL,R-CHOP,y (4),n,n/a,n,25,y,none,n,0,m,14 (1),none,n,n,y,y
+"Piñana
+(2023)",m,699-2,f,66,NHL,R-CHOP,y (4),y,n/a,n,33,n,none,n,0,m,10 (1),none,n,n,y,y
+"Piñana
+(2023)",m,958-59,f,69,NHL,RTX + BEN,y (3),n,n/a,n,135,n,none,n,0,m,10 (1),none,n,n,y,y
+"Piñana
+(2023)",m,676-49,f,39,FL,R-CHOP,y (3),n,n/a,n,62,n,none,n,0,m,10 (1),none,n,n,y,y
+"Piñana
+(2023)",m,676-3,f,59,AML,AZA,y (2),y,n/a,y,64,y,none,n,0,m,13 (1),none,n,n,y,n
+"Sanchez
+(2024)",m,#10,m,55,B-ALL,ASCT,y (2),n,BA.1.1,n/a,155,n,BEB [1],n,0,m,18 [1],none,n,n,y,y
+"Snell
+(2024)",a,BMT-001,f,48,Rheumatoid arthritis,RTX,y (3),y,n/a,y,103,y,none,n,0,m,10 [1],IvIg,n,n,n/a,y
+"Snell
+(2024)",m,GSTT-002,m,55,Haematological malignancy,OBI,y (4),y,BA.2.9,y,236,n,none,n,0,m,10 [1],none,n,n,y,y
+"Snell
+(2024)","a, m",UHW-001,m,74,"Haematological malignancy, Rheumatoid arthritis",RTX  → OBI,y (4),y,BA.2,y,134,y,MPV (5) → RDV (10) → SOT [1] → RDV (21) → SOT [1] → IVIg,y,0,m,20 [2],none,n,n,y,y
+"Snell
+(2024)",m,UHW-002,f,80,Haematological malignancy,OBI,y (4),y,BA.1,y,138,y,RDV (5),n,0,m,14 [1],none,n,n,y,y
+"Snell
+(2024)",m,UHW-003,f,68,Haematological malignancy,none,y (6),y,BQ.1.1.8,y,94,y,RDV (5),n,0,m,10 [1],none,n,n,y,y
+"Snell
+(2024)",m,GSTT-006,m,58,Haematological malignancy,RTX,n/a,y,n/a,y,31,n,RDV (5),n,0,m,10 [1],none,n,n,n,n
