@@ -263,6 +263,7 @@ def build_tables():
         'Primary Cohort (n=104)',
         'Subgroup monotherapy (n=33)',
         'Subgroup combination (n=57)',
+        'p-value',
     ])
 
     def age_fmt(s):
@@ -325,8 +326,61 @@ def build_tables():
         (('Treatment setting\u00b9, n (%)', 'Hospital'), 'Hospital'),
         (('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Outpatient'),
     ]:
-        for col, lab in zip(t_y.columns, res.keys()):
+        for col, lab in zip(t_y.columns[:-1], res.keys()):
             t_y.at[row, col] = res[lab][key]
+    p_age = cont_test(DF_mono[COL_AGE].dropna(), DF_comb[COL_AGE].dropna())
+    t_y.at[('Age, median (IQR)', ''), 'p-value'] = f"{p_age:.3f}"
+    f_mono = DF_mono[COL_SEX].astype(str).str.lower().str.startswith('f')
+    f_comb = DF_comb[COL_SEX].astype(str).str.lower().str.startswith('f')
+    cmb_n = len(f_comb)
+    mono_n = len(f_mono)
+    p_fem = chi_or_fisher(int(f_comb.sum()), cmb_n - int(f_comb.sum()), int(f_mono.sum()), mono_n - int(f_mono.sum()))
+    t_y.at[('Female sex, n (%)', ''), 'p-value'] = f"{p_fem:.3f}"
+    for lab, letter in [('Hematological malignancy', 'm'), ('Autoimmune', 'a'), ('Transplantation', 't')]:
+        m1 = DF_comb[COL_DIS].astype(str).str.lower().str.contains(letter)
+        m2 = DF_mono[COL_DIS].astype(str).str.lower().str.contains(letter)
+        c1n = len(m1)
+        c2n = len(m2)
+        val = chi_or_fisher(int(m1.sum()), c1n - int(m1.sum()), int(m2.sum()), c2n - int(m2.sum()))
+        t_y.at[('Underlying conditions, n (%)', lab), 'p-value'] = f"{val:.3f}"
+    ic_mono = DF_mono[COL_BASE].map(group_immuno)
+    ic_comb = DF_comb[COL_BASE].map(group_immuno)
+    for cat in ['Anti-CD20', 'CAR-T', 'HSCT', 'None']:
+        c1 = ic_comb == cat
+        c2 = ic_mono == cat
+        c1n = len(c1)
+        c2n = len(c2)
+        val = chi_or_fisher(int(c1.sum()), c1n - int(c1.sum()), int(c2.sum()), c2n - int(c2.sum()))
+        t_y.at[('Immunosuppressive treatment, n (%)', cat), 'p-value'] = f"{val:.3f}"
+    gc_mono = DF_mono[COL_GC].astype(str).str.lower().str.startswith('y')
+    gc_comb = DF_comb[COL_GC].astype(str).str.lower().str.startswith('y')
+    c1n = len(gc_comb)
+    c2n = len(gc_mono)
+    p_gc = chi_or_fisher(int(gc_comb.sum()), c1n - int(gc_comb.sum()), int(gc_mono.sum()), c2n - int(gc_mono.sum()))
+    t_y.at[('Glucocorticoid use, n (%)', ''), 'p-value'] = f"{p_gc:.3f}"
+    v_mono = DF_mono[COL_VACC].astype(str).str.lower().str.startswith('y')
+    v_comb = DF_comb[COL_VACC].astype(str).str.lower().str.startswith('y')
+    c1n = len(v_comb)
+    c2n = len(v_mono)
+    p_vacc = chi_or_fisher(int(v_comb.sum()), c1n - int(v_comb.sum()), int(v_mono.sum()), c2n - int(v_mono.sum()))
+    t_y.at[('SARS-CoV-2 vaccination, n (%)', ''), 'p-value'] = f"{p_vacc:.3f}"
+    d_mono = DF_mono[COL_VACC].map(lambda x: parse_vacc(x)[1])
+    d_comb = DF_comb[COL_VACC].map(lambda x: parse_vacc(x)[1])
+    p_dose = cont_test(d_mono.dropna(), d_comb.dropna())
+    t_y.at[('Vaccination doses, n (range)', ''), 'p-value'] = f"{p_dose:.3f}"
+    ct_mono = DF_mono[COL_CT].astype(str).str.lower().str.startswith('y')
+    ct_comb = DF_comb[COL_CT].astype(str).str.lower().str.startswith('y')
+    c1n = len(ct_comb)
+    c2n = len(ct_mono)
+    p_ct = chi_or_fisher(int(ct_comb.sum()), c1n - int(ct_comb.sum()), int(ct_mono.sum()), c2n - int(ct_mono.sum()))
+    t_y.at[('Thoracic CT changes, n (%)', ''), 'p-value'] = f"{p_ct:.3f}"
+    h_mono = DF_mono[COL_HOSP].astype(str).str.lower().str.startswith('y')
+    h_comb = DF_comb[COL_HOSP].astype(str).str.lower().str.startswith('y')
+    c1n = len(h_comb)
+    c2n = len(h_mono)
+    p_hosp = chi_or_fisher(int(h_comb.sum()), c1n - int(h_comb.sum()), int(h_mono.sum()), c2n - int(h_mono.sum()))
+    t_y.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = f"{p_hosp:.3f}"
+    t_y.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = f"{p_hosp:.3f}"
     t_y.loc[('Underlying conditions, n (%)', '')] = ''
     t_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
     t_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
