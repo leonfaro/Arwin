@@ -31,6 +31,8 @@ TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104')
 MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
 COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
 for _df in (TOTAL, MONO, COMBO):
+    if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
+        _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
     s = _df[COL_OTHER].astype(str).str.lower()
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
