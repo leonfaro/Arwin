@@ -13,25 +13,16 @@ COL_EXT = '2nd line extended Paxlovid treatment \n(total days) [courses]'
 COL_SEX = 'sex\n[male, female]'
 COL_AGE = 'age'
 COL_DIS = 'Baseline disease cohort \n[a=autoimmunity, m=malignancy, t=transplant]'
-COL_BASE = 'baseline therapy cohort'
+COL_BASE = 'Baseline therapy cohort'
 COL_GC = 'any glucocorticosteroid usage\n[yes / no]'
 COL_VACC = 'Vaccination \n[yes / no] (doses)'
 COL_CT = 'CT lung changes?\n[yes / no]'
 COL_HOSP = 'Hospitalization\n[yes / no]'
 
 
-def load_sheet(*names):
-    for n in names:
-        try:
-            return pd.read_excel(FILE_PATH, sheet_name=n)
-        except ValueError:
-            continue
-    raise
-
-
-TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104')
-MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
-COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+TOTAL = pd.read_excel(FILE_PATH, sheet_name='primary cohort, clean')
+MONO = pd.read_excel(FILE_PATH, sheet_name='subgroup mono')
+COMBO = pd.read_excel(FILE_PATH, sheet_name='subgroup combo')
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
 
