@@ -150,6 +150,8 @@ if __name__ == '__main__':
     tab.to_excel('table_y_v7.xlsx')
     build_table_y_raw().to_csv('table_y_v7.csv')
     print(tab.shape)
+    print('Table Y. Demographics and Clinical Characteristics.')
+    print(build_table_y().to_string())
 
 __all__ = [
     'table_y',
