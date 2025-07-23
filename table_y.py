@@ -3,6 +3,7 @@ from data_preprocessing import (
     TOTAL,
     MONO,
     COMBO,
+    COL_THERAPY,
     fmt_pct,
     chi_or_fisher,
     fmt_p,
@@ -45,6 +46,8 @@ columns = [
 table_y = pd.DataFrame(index=index, columns=columns)
 
 table_y_raw = pd.DataFrame(index=index, columns=columns)
+
+TOTAL_104 = TOTAL[TOTAL[COL_THERAPY].astype(str).str.startswith(('m', 'c'))]
 
 
 def add_rate(row, flag_total, flag_mono, flag_combo):
@@ -119,17 +122,22 @@ def build_table_y():
         ('None', 'flag_immuno_none'),
     ]
     for lbl, col in pairs:
-        add_rate(('Immunosuppressive treatment, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
+        add_rate(('Immunosuppressive treatment, n (%)', lbl), TOTAL_104[col], MONO[col], COMBO[col])
     add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
     add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
     add_range(('Vaccination doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
     add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
     table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
-    add_rate(('Treatment setting\u00b9, n (%)', 'Hospital'), TOTAL['flag_hosp'], MONO['flag_hosp'], COMBO['flag_hosp'])
+    add_rate(
+        ('Treatment setting\u00b9, n (%)', 'Hospital'),
+        TOTAL_104['flag_hosp'],
+        MONO['flag_hosp'],
+        COMBO['flag_hosp'],
+    )
     add_rate(
         ('Treatment setting\u00b9, n (%)', 'Outpatient'),
-        ~TOTAL['flag_hosp'],
+        ~TOTAL_104['flag_hosp'],
         ~MONO['flag_hosp'],
         ~COMBO['flag_hosp'],
     )
