@@ -4,6 +4,7 @@ from data_preprocessing import (
     MONO,
     COMBO,
     COL_EXT,
+    COL_OTHER,
     COL_THERAPY,
 
     parse_ext,
@@ -28,6 +29,7 @@ def build_table_x():
             ('First-line therapy\u00b9, n (%)', 'Molnupiravir'),
             ('First-line therapy\u00b9, n (%)', 'Standard 5-day Paxlovid'),
             ('First-line therapy\u00b9, n (%)', 'Other antivirals'),
+            ('First-line therapy\u00b9, n (%)', 'None'),
             ('Last line therapy\u00b2, n (%)', ''),
             ('Last line therapy\u00b2, n (%)', 'Combination therapy'),
             ('Last line therapy\u00b2, n (%)', 'Monotherapy'),
@@ -75,6 +77,12 @@ def build_table_x():
             MONO[col],
             COMBO[col],
         )
+    add_rate(
+        ('First-line therapy\u00b9, n (%)', 'None'),
+        TOTAL[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        MONO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        COMBO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+    )
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)
@@ -131,6 +139,7 @@ def build_table_x_raw():
             ('First-line therapy\u00b9, n', 'Molnupiravir'),
             ('First-line therapy\u00b9, n', 'Standard 5-day Paxlovid'),
             ('First-line therapy\u00b9, n', 'Other antivirals'),
+            ('First-line therapy\u00b9, n', 'None'),
             ('Last line therapy\u00b2, n', 'Combination therapy'),
             ('Last line therapy\u00b2, n', 'Monotherapy'),
             ('Treatment courses, n', 'Single prolonged course'),
@@ -171,6 +180,12 @@ def build_table_x_raw():
     cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
     for lbl, col in zip(labels, cols):
         add(('First-line therapy\u00b9, n', lbl), TOTAL[col], MONO[col], COMBO[col])
+    add(
+        ('First-line therapy\u00b9, n', 'None'),
+        TOTAL[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        MONO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        COMBO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+    )
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)
     add(
