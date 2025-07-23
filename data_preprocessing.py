@@ -20,9 +20,16 @@ COL_CT = 'CT lung changes?\n[yes / no]'
 COL_HOSP = 'Hospitalization\n[yes / no]'
 
 
-TOTAL = pd.read_excel(FILE_PATH, sheet_name='primary cohort, clean')
-MONO = pd.read_excel(FILE_PATH, sheet_name='subgroup mono')
-COMBO = pd.read_excel(FILE_PATH, sheet_name='subgroup combo')
+def load_sheet(primary, alt):
+    try:
+        return pd.read_excel(FILE_PATH, sheet_name=primary)
+    except ValueError:
+        return pd.read_excel(FILE_PATH, sheet_name=alt)
+
+
+TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104')
+MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
+COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
 for _df in (TOTAL, MONO, COMBO):
     s = _df[COL_OTHER].astype(str).str.lower()
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
@@ -75,18 +82,18 @@ def group_immuno(x: str) -> str:
     for t in tags:
         if not t:
             continue
-        if any(k in t for k in ['ritux', 'rtx', 'obinu', 'ocr', 'ocrel', 'mosune', 'cd20', 'cd-20']):
+        if 'cd20' in t:
             labs.add('CD20')
         elif 'car' in t:
             labs.add('CAR-T')
-        elif 'hsct' in t or 'asct' in t:
+        elif 'hsct' in t:
             labs.add('HSCT')
-        elif 'none' in t or 'no' == t:
+        elif 'none' in t:
             labs.add('none')
         else:
             labs.add('Other')
     if not labs:
-        labs.add('none')
+        return 'none'
     return labs.pop() if len(labs) == 1 else 'Mixed'
 
 
