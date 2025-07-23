@@ -13,6 +13,12 @@ from data_preprocessing import (
     COL_HOSP,
     group_immuno,
     parse_vacc,
+    fmt_pct,
+    chi_or_fisher,
+    fmt_p,
+    fmt_iqr,
+    fmt_range,
+    cont_test,
 )
 
 
@@ -77,4 +83,120 @@ table_y = pd.DataFrame(index=index, columns=columns)
 
 table_y_raw = pd.DataFrame(index=index, columns=columns)
 
-__all__ = ['table_y', 'table_y_raw', 'TOTAL', 'MONO', 'COMBO']
+
+def add_rate(row, flag_total, flag_mono, flag_combo):
+    nt = int(flag_total.sum())
+    nm = int(flag_mono.sum())
+    nc = int(flag_combo.sum())
+    table_y.at[row, 'Primary Cohort (n=104)'] = fmt_pct(nt, len(flag_total))
+    table_y.at[row, 'Subgroup monotherapy (n=33)'] = fmt_pct(nm, len(flag_mono))
+    table_y.at[row, 'Subgroup combination (n=57)'] = fmt_pct(nc, len(flag_combo))
+    a11 = nc
+    a12 = len(flag_combo) - nc
+    a21 = nm
+    a22 = len(flag_mono) - nm
+    p = chi_or_fisher(a11, a12, a21, a22)
+    table_y.at[row, 'p-value'] = fmt_p(p)
+    table_y_raw.at[row, 'Primary Cohort'] = nt
+    table_y_raw.at[row, 'Subgroup monotherapy'] = nm
+    table_y_raw.at[row, 'Subgroup combination'] = nc
+    table_y_raw.at[row, 'p-value'] = p
+
+
+def add_median_iqr(row, vec_total, vec_mono, vec_combo):
+    vt = pd.to_numeric(vec_total, errors='coerce').dropna()
+    vm = pd.to_numeric(vec_mono, errors='coerce').dropna()
+    vc = pd.to_numeric(vec_combo, errors='coerce').dropna()
+    table_y.at[row, 'Primary Cohort (n=104)'] = fmt_iqr(vt)
+    table_y.at[row, 'Subgroup monotherapy (n=33)'] = fmt_iqr(vm)
+    table_y.at[row, 'Subgroup combination (n=57)'] = fmt_iqr(vc)
+    p = cont_test(vm, vc)
+    table_y.at[row, 'p-value'] = fmt_p(p)
+    table_y_raw.at[row, 'Primary Cohort'] = vt.median()
+    table_y_raw.at[row, 'Subgroup monotherapy'] = vm.median()
+    table_y_raw.at[row, 'Subgroup combination'] = vc.median()
+    table_y_raw.at[row, 'p-value'] = p
+
+
+def add_range(row, vec_total, vec_mono, vec_combo):
+    vt = pd.to_numeric(vec_total, errors='coerce').dropna()
+    vm = pd.to_numeric(vec_mono, errors='coerce').dropna()
+    vc = pd.to_numeric(vec_combo, errors='coerce').dropna()
+    table_y.at[row, 'Primary Cohort (n=104)'] = fmt_range(vt)
+    table_y.at[row, 'Subgroup monotherapy (n=33)'] = fmt_range(vm)
+    table_y.at[row, 'Subgroup combination (n=57)'] = fmt_range(vc)
+    p = cont_test(vm, vc)
+    table_y.at[row, 'p-value'] = fmt_p(p)
+    table_y_raw.at[row, 'Primary Cohort'] = vt.min()
+    table_y_raw.at[row, 'Subgroup monotherapy'] = vm.min()
+    table_y_raw.at[row, 'Subgroup combination'] = vc.min()
+    table_y_raw.at[row, 'p-value'] = p
+
+
+def build_table_y():
+    table_y.loc[:] = None
+    table_y_raw.loc[:] = None
+    add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
+    add_rate(('Female sex, n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
+    table_y.loc[('Underlying conditions, n (%)', '')] = ''
+    table_y_raw.loc[('Underlying conditions, n (%)', '')] = None
+    pairs = [
+        ('Hematological malignancy', 'flag_malign'),
+        ('Autoimmune', 'flag_autoimm'),
+        ('Transplantation', 'flag_transpl'),
+    ]
+    for lbl, col in pairs:
+        add_rate(('Underlying conditions, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
+    table_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    table_y_raw.loc[('Immunosuppressive treatment, n (%)', '')] = None
+    pairs = [
+        ('Anti-CD20', 'flag_cd20'),
+        ('CAR-T', 'flag_cart'),
+        ('HSCT', 'flag_hsct'),
+        ('None', 'flag_immuno_none'),
+    ]
+    for lbl, col in pairs:
+        add_rate(('Immunosuppressive treatment, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
+    add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
+    add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
+    add_range(('Vaccination doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
+    add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
+    table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
+    table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
+    add_rate(('Treatment setting\u00b9, n (%)', 'Hospital'), TOTAL['flag_hosp'], MONO['flag_hosp'], COMBO['flag_hosp'])
+    add_rate(
+        ('Treatment setting\u00b9, n (%)', 'Outpatient'),
+        ~TOTAL['flag_hosp'],
+        ~MONO['flag_hosp'],
+        ~COMBO['flag_hosp'],
+    )
+    foot = 'Treatment setting where prolonged Paxlovid was administered.'
+    table_y.attrs['footnote'] = foot
+    table_y_raw.attrs['footnote'] = foot
+    return table_y
+
+
+def build_table_y_raw():
+    if table_y_raw.isnull().all().all():
+        build_table_y()
+    return table_y_raw
+
+
+if __name__ == '__main__':
+    tab = build_table_y()
+    tab.to_excel('table_y_v7.xlsx')
+    build_table_y_raw().to_csv('table_y_v7.csv')
+    print(tab.shape)
+
+__all__ = [
+    'table_y',
+    'table_y_raw',
+    'TOTAL',
+    'MONO',
+    'COMBO',
+    'build_table_y',
+    'build_table_y_raw',
+    'add_rate',
+    'add_median_iqr',
+    'add_range',
+]
