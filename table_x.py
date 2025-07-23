@@ -126,6 +126,14 @@ def build_table_x():
     p_dur = cont_test(days_m.dropna(), days_c.dropna())
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
+    foot = (
+        '- NMV-r, nirmatrelvir-ritonavir.\n'
+        '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
+        'including standard 5-day Paxlovid courses with or without other antivirals.\n'
+        '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
+        'when no subsequent antiviral therapy was administered.'
+    )
+    t_x.attrs['footnote'] = foot
     return t_x
 
 
@@ -229,9 +237,26 @@ def build_table_x_raw():
     raw.at[('Duration, days', 'Median'), 'p-value'] = cont_test(days_m.dropna(), days_c.dropna())
     raw.at[('Duration, days', 'Min'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
     raw.at[('Duration, days', 'Max'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
+    foot = (
+        '- NMV-r, nirmatrelvir-ritonavir.\n'
+        '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
+        'including standard 5-day Paxlovid courses with or without other antivirals.\n'
+        '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
+        'when no subsequent antiviral therapy was administered.'
+    )
+    raw.attrs['footnote'] = foot
     return raw
 
 
 if __name__ == '__main__':
     print('Table X. Treatment Approach.')
     print(build_table_x().to_string())
+    print('- NMV-r, nirmatrelvir-ritonavir.')
+    print(
+        '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
+        'including standard 5-day Paxlovid courses with or without other antivirals.'
+    )
+    print(
+        '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
+        'when no subsequent antiviral therapy was administered.'
+    )
