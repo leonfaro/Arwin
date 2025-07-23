@@ -2,14 +2,14 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-FILE_PATH = 'data characteristics v7, clean.xlsx'
+FILE_PATH = 'data characteristics v9, clean.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
     '2nd line treatment form of therapy \n[m / c]\nmono: only Paxlovid\n'
     'combination: Paxlovid + any other antiviral drugs'
 )
-COL_EXT = '2nd line extended Paxlovid treatment \n(total days) [courses]'
+COL_EXT = '2nd line extended Paxlovid treatment \ntotal days [courses]'
 COL_SEX = 'sex\n[male, female]'
 COL_AGE = 'age'
 COL_DIS = 'Baseline disease cohort \n[a=autoimmunity, m=malignancy, t=transplant]'
@@ -37,6 +37,9 @@ COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
 for _df in (TOTAL, MONO, COMBO):
     if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
         _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
+    for c in list(_df.columns):
+        if c.startswith('2nd line extended Paxlovid treatment'):
+            _df.rename(columns={c: COL_EXT}, inplace=True)
     s = _df[COL_OTHER].astype(str).str.lower()
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
