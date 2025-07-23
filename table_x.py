@@ -23,7 +23,6 @@ def build_table_x():
     days_c, courses_c = parse_ext(COMBO[COL_EXT])
     index = pd.MultiIndex.from_tuples(
         [
-            ('N=', ''),
             ('First-line therapy\u00b9, n (%)', ''),
             ('First-line therapy\u00b9, n (%)', 'Remdesivir'),
             ('First-line therapy\u00b9, n (%)', 'Molnupiravir'),
@@ -47,10 +46,6 @@ def build_table_x():
         'Subgroup combination (n=57)',
         'p-value',
     ])
-    t_x.at[('N=', ''), 'Primary Cohort (n=104)'] = len(TOTAL)
-    t_x.at[('N=', ''), 'Subgroup monotherapy (n=33)'] = len(MONO)
-    t_x.at[('N=', ''), 'Subgroup combination (n=57)'] = len(COMBO)
-    t_x.at[('N=', ''), 'p-value'] = ''
 
     def add_rate(row, ser_total, ser_mono, ser_combo):
         t_x.at[row, 'Primary Cohort (n=104)'] = fmt_pct(int(ser_total.sum()), len(TOTAL))
@@ -132,7 +127,6 @@ def build_table_x_raw():
     days_c, courses_c = parse_ext(COMBO[COL_EXT])
     index = pd.MultiIndex.from_tuples(
         [
-            ('N=', ''),
             ('First-line therapy\u00b9, n', 'Remdesivir'),
             ('First-line therapy\u00b9, n', 'Molnupiravir'),
             ('First-line therapy\u00b9, n', 'Standard 5-day Paxlovid'),
@@ -153,10 +147,6 @@ def build_table_x_raw():
         'Subgroup combination',
         'p-value',
     ])
-    raw.at[('N=', ''), 'Primary Cohort'] = len(TOTAL)
-    raw.at[('N=', ''), 'Subgroup monotherapy'] = len(MONO)
-    raw.at[('N=', ''), 'Subgroup combination'] = len(COMBO)
-    raw.at[('N=', ''), 'p-value'] = None
 
     def add(row, ser_total, ser_mono, ser_combo):
         nt = int(ser_total.sum())
