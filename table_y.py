@@ -88,14 +88,14 @@ def add_range(row, vec_total, vec_mono, vec_combo):
     vt = pd.to_numeric(vec_total, errors='coerce').dropna()
     vm = pd.to_numeric(vec_mono, errors='coerce').dropna()
     vc = pd.to_numeric(vec_combo, errors='coerce').dropna()
-    table_y.at[row, 'Primary Cohort (n=104)'] = fmt_range(vt)
-    table_y.at[row, 'Subgroup monotherapy (n=33)'] = fmt_range(vm)
-    table_y.at[row, 'Subgroup combination (n=57)'] = fmt_range(vc)
+    table_y.at[row, 'Primary Cohort (n=104)'] = f"{len(vt)} ({fmt_range(vt)})"
+    table_y.at[row, 'Subgroup monotherapy (n=33)'] = f"{len(vm)} ({fmt_range(vm)})"
+    table_y.at[row, 'Subgroup combination (n=57)'] = f"{len(vc)} ({fmt_range(vc)})"
     p = cont_test(vm, vc)
     table_y.at[row, 'p-value'] = fmt_p(p)
-    table_y_raw.at[row, 'Primary Cohort'] = vt.min()
-    table_y_raw.at[row, 'Subgroup monotherapy'] = vm.min()
-    table_y_raw.at[row, 'Subgroup combination'] = vc.min()
+    table_y_raw.at[row, 'Primary Cohort'] = len(vt)
+    table_y_raw.at[row, 'Subgroup monotherapy'] = len(vm)
+    table_y_raw.at[row, 'Subgroup combination'] = len(vc)
     table_y_raw.at[row, 'p-value'] = p
 
 
