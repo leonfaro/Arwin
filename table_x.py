@@ -4,8 +4,6 @@ from data_preprocessing import (
     MONO,
     COMBO,
     COL_EXT,
-    COL_NMV_STD,
-    COL_OTHER,
     COL_THERAPY,
 
     parse_ext,
@@ -68,26 +66,20 @@ def build_table_x():
         else:
             t_x.at[row, 'p-value'] = ''
 
-    def flags(df):
-        s = df[COL_OTHER].astype(str).str.lower()
-        f_rdv = s.str.contains('rdv') | s.str.contains('remdesivir')
-        f_mpv = s.str.contains('mpv') | s.str.contains('molnupiravir')
-        f_pax = pd.to_numeric(df[COL_NMV_STD], errors='coerce').fillna(0) > 0
-        not_none = s.str.strip().ne('none') & s.str.contains('[a-z]', na=False)
-        f_oth = not_none & ~(f_rdv | f_mpv)
-        return f_pax, f_rdv, f_mpv, f_oth
-
-    f_t = flags(TOTAL)
-    f_m = flags(MONO)
-    f_c = flags(COMBO)
     labels = [
         'Standard 5-day Paxlovid',
         'Remdesivir',
         'Molnupiravir',
         'Other antivirals',
     ]
-    for lbl, ft, fm, fc in zip(labels, f_t, f_m, f_c):
-        add_rate(('First-line therapy\u00b9, n (%)', lbl), ft, fm, fc)
+    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    for lbl, col in zip(labels, cols):
+        add_rate(
+            ('First-line therapy\u00b9, n (%)', lbl),
+            TOTAL[col],
+            MONO[col],
+            COMBO[col],
+        )
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)

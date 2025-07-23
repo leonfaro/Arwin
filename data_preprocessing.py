@@ -23,6 +23,13 @@ COL_HOSP = 'Hospitalization\n[yes / no]'
 TOTAL = pd.read_excel(FILE_PATH, sheet_name='primary cohort, clean')
 MONO = pd.read_excel(FILE_PATH, sheet_name='subgroup mono')
 COMBO = pd.read_excel(FILE_PATH, sheet_name='subgroup combo')
+for _df in (TOTAL, MONO, COMBO):
+    s = _df[COL_OTHER].astype(str).str.lower()
+    _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
+    _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
+    _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
+    nn = s.str.strip().ne('none') & s.str.contains('[a-z]', na=False)
+    _df['flag_other'] = nn & ~(_df['flag_rdv'] | _df['flag_mpv'])
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
 
