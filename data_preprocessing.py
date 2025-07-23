@@ -238,11 +238,23 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['trans'] = dis.map(transp_subtype)
     df['group'] = df[COL_DIS].map(disease_group)
     df['immu'] = df[COL_BASE].map(immuno_cat)
+    s = df[COL_DIS].astype(str).str.lower()
+    df['flag_malign'] = s.str.contains('m')
+    df['flag_autoimm'] = s.str.contains('a')
+    df['flag_transpl'] = s.str.contains('t')
+    base = df[COL_BASE].map(group_immuno)
+    df['flag_cd20'] = base == 'CD20'
+    df['flag_cart'] = base == 'CAR-T'
+    df['flag_hsct'] = base == 'HSCT'
+    df['flag_immuno_none'] = ~(
+        df[['flag_cd20', 'flag_cart', 'flag_hsct']].any(axis=1)
+    ) | (base == 'none')
     df['flag_gc'] = df[COL_GC].astype(str).str.lower().str.startswith('y')
     vacc = df[COL_VACC].map(parse_vacc)
     df['vacc_yes'] = vacc.map(lambda x: x[0] == 'Yes')
     df['dose_vec'] = vacc.map(lambda x: x[1])
     df['flag_ct'] = df[COL_CT].astype(str).str.lower().str.startswith('y')
+    df['flag_hosp'] = df[COL_HOSP].astype(str).str.lower().str.startswith('y')
     df['rep_vec'] = pd.to_numeric(df[COL_REP], errors='coerce')
     df['geno'] = df[COL_GENO].map(geno_cat)
     df['flag_long'] = df['rep_vec'] >= 14
