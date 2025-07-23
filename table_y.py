@@ -133,7 +133,10 @@ def build_table_y():
         ~MONO['flag_hosp'],
         ~COMBO['flag_hosp'],
     )
-    foot = 'Treatment setting where prolonged Paxlovid was administered.'
+    foot = (
+        '- NMV-r, nirmatrelvir-ritonavir.\n'
+        '1: Treatment setting where prolonged NMV-r was administered.'
+    )
     table_y.attrs['footnote'] = foot
     table_y_raw.attrs['footnote'] = foot
     return table_y
@@ -152,6 +155,8 @@ if __name__ == '__main__':
     print(tab.shape)
     print('Table Y. Demographics and Clinical Characteristics.')
     print(build_table_y().to_string())
+    print('- NMV-r, nirmatrelvir-ritonavir.')
+    print('1: Treatment setting where prolonged NMV-r was administered.')
 
 __all__ = [
     'table_y',
