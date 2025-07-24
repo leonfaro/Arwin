@@ -374,25 +374,6 @@ if __name__ == '__main__':
     print(COMBO.shape)
     print(baseline_stats())
 
-    TOTAL,
-    MONO,
-    COMBO,
-    COL_EXT,
-    COL_OTHER,
-    COL_THERAPY,
-
-    parse_ext,
-    fmt_pct,
-    fmt_p,
-    fmt_iqr,
-    fmt_range,
-    cont_test,
-    chi_or_fisher,
-    rate_calc,
-    fill_rate,
-)
-
-
 def build_table_x():
     days_t, courses_t = parse_ext(TOTAL[COL_EXT])
     days_m, courses_m = parse_ext(MONO[COL_EXT])
@@ -623,14 +604,6 @@ if __name__ == '__main__':
         'when no subsequent antiviral therapy was administered.'
     )
 
-    TOTAL,
-    MONO,
-    COMBO,
-    fill_rate,
-    fill_median_iqr,
-    fill_mean_range,
-)
-
 index = pd.MultiIndex.from_tuples(
     [
         ('N =', ''),
@@ -780,14 +753,6 @@ __all__ = [
     'add_median_iqr',
     'add_mean_range',
 ]
-
-    TOTAL,
-    MONO,
-    COMBO,
-    fill_rate,
-    fill_median_iqr,
-    fill_range,
-)
 
 index = pd.MultiIndex.from_tuples(
     [

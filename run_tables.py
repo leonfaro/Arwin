@@ -337,10 +337,26 @@ def clean(path):
 def code_without_imports(path):
     lines = open(path).read().splitlines()
     i = 0
-    while i < len(lines) and (lines[i].startswith("import") or lines[i].startswith("from")):
-        i += 1
-    while i < len(lines) and lines[i].strip() == "":
-        i += 1
+    paren = 0
+    while i < len(lines):
+        line = lines[i]
+        strip = line.strip()
+        if paren > 0:
+            if "(" in line:
+                paren += line.count("(")
+            if ")" in line:
+                paren -= line.count(")")
+            i += 1
+            continue
+        if line.startswith("import") or line.startswith("from"):
+            if line.rstrip().endswith("("):
+                paren = 1
+            i += 1
+            continue
+        if strip == "":
+            i += 1
+            continue
+        break
     return "\n".join(lines[i:])
 
 
