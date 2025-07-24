@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from table_x import build_table_x
 from table_y import build_table_y
 from table_z import build_table_z
@@ -363,6 +364,7 @@ def code_without_imports(path):
 
 
 def main():
+    stamp = date.today().isoformat()
     t1 = build_table_x()
     t2 = build_table_y()
     t3 = build_table_z()
@@ -375,6 +377,7 @@ def main():
     out_tab = "tables.md"
     clean(out_tab)
     with open(out_tab, "w") as f:
+        f.write(stamp + "\n")
         f.write(section("Table X", t1, m1))
         f.write(section("Table Y", t2, m2))
         f.write(section("Table Z", t3, m3))
@@ -382,6 +385,7 @@ def main():
     out_code = "code.md"
     clean(out_code)
     with open(out_code, "w") as f:
+        f.write(stamp + "\n")
         f.write(open("data_preprocessing.py").read().rstrip() + "\n\n")
         for name in ["table_x.py", "table_y.py", "table_z.py", "table_B.py"]:
             f.write(code_without_imports(name))
