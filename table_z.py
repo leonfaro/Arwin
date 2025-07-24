@@ -3,7 +3,6 @@ from data_preprocessing import (
     TOTAL,
     MONO,
     COMBO,
-    COL_THERAPY,
     fmt_pct,
     fmt_iqr,
     fmt_range,
@@ -77,8 +76,6 @@ columns = [
 table_z = pd.DataFrame(index=index, columns=columns)
 table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
-TOTAL_104 = TOTAL[TOTAL[COL_THERAPY].astype(str).str.startswith(('m', 'c'))]
-
 
 def add_rate(row, ft, fm, fc):
     nt = int(ft.sum())
@@ -113,6 +110,7 @@ def add_range(row, vt, vm, vc):
 
 def build_table_z():
     table_z.loc[:] = None
+    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
     table_z.loc[('Haematological malignancy, n (%)', '')] = ''
     table_z.loc[('Autoimmune disease, n (%)', '')] = ''
     table_z.loc[('Transplantation, n (%)', '')] = ''
@@ -126,7 +124,7 @@ def build_table_z():
     for lab in labs:
         add_rate(
             ('Haematological malignancy, n (%)', lab),
-            TOTAL_104['heme'] == lab,
+            TOTAL['heme'] == lab,
             MONO['heme'] == lab,
             COMBO['heme'] == lab,
         )
@@ -143,28 +141,28 @@ def build_table_z():
     for lab in labs:
         add_rate(
             ('Autoimmune disease, n (%)', lab),
-            TOTAL_104['auto'] == lab,
+            TOTAL['auto'] == lab,
             MONO['auto'] == lab,
             COMBO['auto'] == lab,
         )
     for lab in ['Lung-TX', 'Kidney-TX']:
         add_rate(
             ('Transplantation, n (%)', lab),
-            TOTAL_104['trans'] == lab,
+            TOTAL['trans'] == lab,
             MONO['trans'] == lab,
             COMBO['trans'] == lab,
         )
     for lab in ['Haematological malignancy', 'Autoimmune disease', 'Transplantation']:
         add_rate(
             ('Disease group, n (%)', lab),
-            TOTAL_104['group'] == lab,
+            TOTAL['group'] == lab,
             MONO['group'] == lab,
             COMBO['group'] == lab,
         )
     for lab in ['None', 'Anti-CD-20', 'CAR-T']:
         add_rate(
             ('Immunosuppressive treatment, n (%)', lab),
-            TOTAL_104['immu'] == lab,
+            TOTAL['immu'] == lab,
             MONO['immu'] == lab,
             COMBO['immu'] == lab,
         )
@@ -187,7 +185,7 @@ def build_table_z():
     for lab in labs:
         add_rate(
             ('SARS-CoV-2 genotype, n (%)', lab),
-            TOTAL_104['geno'] == lab,
+            TOTAL['geno'] == lab,
             MONO['geno'] == lab,
             COMBO['geno'] == lab,
         )
@@ -204,7 +202,7 @@ def build_table_z():
         COMBO['flag_surv'],
     )
     for lab in ['None', 'Thrombocytopenia', 'Other']:
-        add_rate(('Adverse events, n (%)', lab), TOTAL_104['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
+        add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
     return table_z
 
 
