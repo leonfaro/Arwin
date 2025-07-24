@@ -149,23 +149,23 @@ def auto_subtype(x):
         return 'CREST'
     if 'ms' in s and 'mcl' not in s:
         return 'MS'
-    if 'systemic sclerosis' in s:
-        return 'Systemic sclerosis'
+    if 'systemic sclerosis' in s or re.search(r'\bssc\b', s):
+        return 'SSc'
     if 'ulcerosa' in s:
         return 'Colitis ulcerosa'
     if 'glomerulonephritis' in s:
         return 'Glomerulonephritis'
     if 'nmda' in s:
-        return 'NMDA-receptor encephalitis'
+        return 'NMDA-encephalitis'
     return None
 
 
 def transp_subtype(x):
     s = str(x).lower()
-    if 'lung' in s and 'tx' in s:
-        return 'Lung-TX'
-    if 'kidney' in s and 'tx' in s:
-        return 'Kidney-TX'
+    if re.search(r'\blt\b', s) or ('lung' in s and 'tx' in s):
+        return 'LT'
+    if re.search(r'\bkt\b', s) or ('kidney' in s and 'tx' in s):
+        return 'KT'
     return None
 
 
