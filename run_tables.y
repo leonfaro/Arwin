@@ -9,6 +9,7 @@ def section(title, tab):
     df = tab.copy()
     df.insert(0, "subrow", df.index.get_level_values(1))
     df.insert(0, "row", df.index.get_level_values(0))
+    df.loc[df["subrow"] != "", "row"] = ""
     text = "# " + title + "\n\n" + df.reset_index(drop=True).to_markdown(index=False) + "\n\n" + tab.attrs.get("footnote", "") + "\n\n"
     return text
 
