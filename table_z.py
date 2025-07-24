@@ -185,5 +185,5 @@ def build_table_z():
 
 
 if __name__ == '__main__':
-    print('Table Z')
+    print('Table Z. Detailed Patient Characteristics.')
     print(build_table_z().to_string())

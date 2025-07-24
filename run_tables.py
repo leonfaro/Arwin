@@ -28,7 +28,7 @@ def cont_test_method(v1, v2):
         n2 = len(v2)
         df = (s1 / n1 + s2 / n2) ** 2 / ((s1 / n1) ** 2 / (n1 - 1) + (s2 / n2) ** 2 / (n2 - 1))
         return f"t-test df={int(round(df))}"
-    return "MWU"
+    return "Mann-Whitney-U"
 
 
 def tests_table_x():
@@ -375,10 +375,10 @@ def main():
     out_tab = "tables.md"
     clean(out_tab)
     with open(out_tab, "w") as f:
-        f.write(section("Table X", t1, m1))
-        f.write(section("Table Y", t2, m2))
-        f.write(section("Table Z", t3, m3))
-        f.write(section("Table B", t4, m4))
+        f.write(section("Table X. Treatment Approach", t1, m1))
+        f.write(section("Table Y. Demographics and Clinical Characteristics", t2, m2))
+        f.write(section("Table Z. Detailed Patient Characteristics", t3, m3))
+        f.write(section("Table B. Outcomes in all cohorts", t4, m4))
     out_code = "code.md"
     clean(out_code)
     with open(out_code, "w") as f:
