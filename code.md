@@ -950,7 +950,7 @@ index = pd.MultiIndex.from_tuples(
         ('SARS-CoV-2-related mortality\u00b3, n (%)', ''),
         ('AE\u2074, n (%)', ''),
     ],
-    names=['row', 'subrow'],
+    names=['Outcomes', ''],
 )
 
 
@@ -982,6 +982,11 @@ def build_table_B():
 
 
 if __name__ == '__main__':
-    print('Table B')
-    print(build_table_B().to_string())
+    tab = build_table_B()
+    print('Table B. Outcomes in all cohorts.')
+    print(tab.to_string())
+    foot = tab.attrs['footnote']
+    for line in foot.split('\n'):
+        if line:
+            print(line)
 
