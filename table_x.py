@@ -11,11 +11,11 @@ from data_preprocessing import (
     fmt_pct,
     fmt_p,
     fmt_iqr,
-
     fmt_range,
     cont_test,
-    rate_calc,
     chi_or_fisher,
+    rate_calc,
+    fill_rate,
 )
 
 
@@ -53,14 +53,7 @@ def build_table_x():
     t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
     def add_rate(row, st, sm, sc):
-        nt, nm, nc, p = rate_calc(st, sm, sc)
-        t_x.at[row, 'Total'] = fmt_pct(nt, len(TOTAL))
-        t_x.at[row, 'Monotherapy'] = fmt_pct(nm, len(MONO))
-        t_x.at[row, 'Combination'] = fmt_pct(nc, len(COMBO))
-        if st.sum():
-            t_x.at[row, 'p-value'] = fmt_p(p)
-        else:
-            t_x.at[row, 'p-value'] = ''
+        fill_rate(t_x, row, st, sm, sc, blank=st.sum() == 0)
 
     labels = [
         'Standard 5-day Paxlovid',

@@ -3,12 +3,9 @@ from data_preprocessing import (
     TOTAL,
     MONO,
     COMBO,
-    fmt_pct,
-    fmt_iqr,
-    fmt_range,
-    fmt_p,
-    rate_calc,
-    vec_calc,
+    fill_rate,
+    fill_median_iqr,
+    fill_range,
 )
 
 index = pd.MultiIndex.from_tuples(
@@ -78,27 +75,15 @@ table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
 
 def add_rate(row, ft, fm, fc):
-    nt, nm, nc, p = rate_calc(ft, fm, fc)
-    table_z.at[row, 'Total'] = fmt_pct(nt, len(ft))
-    table_z.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
-    table_z.at[row, 'Combination'] = fmt_pct(nc, len(fc))
-    table_z.at[row, 'p-value'] = fmt_p(p)
+    fill_rate(table_z, row, ft, fm, fc)
 
 
 def add_median_iqr(row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
-    table_z.at[row, 'Total'] = fmt_iqr(vt)
-    table_z.at[row, 'Monotherapy'] = fmt_iqr(vm)
-    table_z.at[row, 'Combination'] = fmt_iqr(vc)
-    table_z.at[row, 'p-value'] = fmt_p(p)
+    fill_median_iqr(table_z, row, vt, vm, vc)
 
 
 def add_range(row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
-    table_z.at[row, 'Total'] = fmt_range(vt)
-    table_z.at[row, 'Monotherapy'] = fmt_range(vm)
-    table_z.at[row, 'Combination'] = fmt_range(vc)
-    table_z.at[row, 'p-value'] = fmt_p(p)
+    fill_range(table_z, row, vt, vm, vc)
 
 
 def build_table_z():
