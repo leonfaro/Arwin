@@ -247,6 +247,42 @@ def vec_calc(vt, vm, vc):
     return vt, vm, vc, cont_test(vm, vc)
 
 
+def fill_rate(tab, row, ft, fm, fc, blank=False):
+    nt, nm, nc, p = rate_calc(ft, fm, fc)
+    tab.at[row, 'Total'] = fmt_pct(nt, len(ft))
+    tab.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
+    tab.at[row, 'Combination'] = fmt_pct(nc, len(fc))
+    tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
+    return nt, nm, nc, p
+
+
+def fill_median_iqr(tab, row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    tab.at[row, 'Total'] = fmt_iqr(vt)
+    tab.at[row, 'Monotherapy'] = fmt_iqr(vm)
+    tab.at[row, 'Combination'] = fmt_iqr(vc)
+    tab.at[row, 'p-value'] = fmt_p(p)
+    return vt, vm, vc, p
+
+
+def fill_mean_range(tab, row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    tab.at[row, 'Total'] = f'{vt.mean():.1f} ({fmt_range(vt)})'
+    tab.at[row, 'Monotherapy'] = f'{vm.mean():.1f} ({fmt_range(vm)})'
+    tab.at[row, 'Combination'] = f'{vc.mean():.1f} ({fmt_range(vc)})'
+    tab.at[row, 'p-value'] = fmt_p(p)
+    return vt, vm, vc, p
+
+
+def fill_range(tab, row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    tab.at[row, 'Total'] = fmt_range(vt)
+    tab.at[row, 'Monotherapy'] = fmt_range(vm)
+    tab.at[row, 'Combination'] = fmt_range(vc)
+    tab.at[row, 'p-value'] = fmt_p(p)
+    return vt, vm, vc, p
+
+
 def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['age_vec'] = pd.to_numeric(df[COL_AGE], errors='coerce')
     df['flag_female'] = df[COL_SEX].astype(str).str.lower().str.startswith('f')
