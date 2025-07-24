@@ -31,7 +31,7 @@ def load_sheet(primary, alt):
         return pd.read_excel(FILE_PATH, sheet_name=alt)
 
 
-TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104')
+TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104').iloc[:104]
 MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
 COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
 for _df in (TOTAL, MONO, COMBO):
