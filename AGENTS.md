@@ -4,5 +4,4 @@
 - **Read README.md before starting any task** to ensure alignment with project goals and nomenclature.
 - **Write code without comments** and try use **Python** wherever possible. But you may use external packages if needed.
 - Whenever a new package is needed, add it to requirements.txt as well
-
-- Run run_tables.y after completing any task.
+- Run run_tables.py after completing any task before writing a PR-message.
