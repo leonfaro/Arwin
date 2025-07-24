@@ -6,6 +6,7 @@ from data_preprocessing import (
     fill_rate,
     fill_median_iqr,
     fill_mean_range,
+    fmt_p,
 )
 
 index = pd.MultiIndex.from_tuples(
@@ -108,18 +109,31 @@ def build_table_y():
 
     table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
-    add_rate(
+    nt, nm, nc, p_set = fill_rate(
+        table_y,
         ('Treatment setting\u00b9, n (%)', 'Hospital'),
         TOTAL['flag_hosp'],
         MONO['flag_hosp'],
         COMBO['flag_hosp'],
     )
-    add_rate(
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Total'] = nt
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Monotherapy'] = nm
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Combination'] = nc
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = p_set
+    nt2, nm2, nc2, _ = fill_rate(
+        table_y,
         ('Treatment setting\u00b9, n (%)', 'Outpatient'),
         ~TOTAL['flag_hosp'],
         ~MONO['flag_hosp'],
         ~COMBO['flag_hosp'],
     )
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Total'] = nt2
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Monotherapy'] = nm2
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Combination'] = nc2
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = None
+    table_y.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = ''
+    table_y.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = ''
+    table_y.at[('Treatment setting\u00b9, n (%)', ''), 'p-value'] = fmt_p(p_set)
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Treatment setting where prolonged NMV-r was administered.'

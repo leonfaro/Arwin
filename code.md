@@ -473,8 +473,9 @@ def build_table_x():
     t_x.at[('Duration', 'Duration range, days'), 'Combination'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
     p_dur = cont_test(days_m.dropna(), days_c.dropna())
-    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
-    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', ''), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = ''
+    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
@@ -704,18 +705,31 @@ def build_table_y():
 
     table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
-    add_rate(
+    nt, nm, nc, p_set = fill_rate(
+        table_y,
         ('Treatment setting\u00b9, n (%)', 'Hospital'),
         TOTAL['flag_hosp'],
         MONO['flag_hosp'],
         COMBO['flag_hosp'],
     )
-    add_rate(
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Total'] = nt
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Monotherapy'] = nm
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Combination'] = nc
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = p_set
+    nt2, nm2, nc2, _ = fill_rate(
+        table_y,
         ('Treatment setting\u00b9, n (%)', 'Outpatient'),
         ~TOTAL['flag_hosp'],
         ~MONO['flag_hosp'],
         ~COMBO['flag_hosp'],
     )
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Total'] = nt2
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Monotherapy'] = nm2
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Combination'] = nc2
+    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = None
+    table_y.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = ''
+    table_y.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = ''
+    table_y.at[('Treatment setting\u00b9, n (%)', ''), 'p-value'] = fmt_p(p_set)
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Treatment setting where prolonged NMV-r was administered.'
@@ -931,7 +945,7 @@ def build_table_z():
 
 
 if __name__ == '__main__':
-    print('Table Z')
+    print('Table Z. Detailed Patient Characteristics.')
     print(build_table_z().to_string())
 
 COL_ERAD = 'eradication outcome successful\n[yes / no]'
@@ -943,15 +957,12 @@ def flag(series, val):
     return series.astype(str).str.lower().str.startswith(val)
 
 
-index = pd.MultiIndex.from_tuples(
-    [
-        ('SARS-CoV-2 Persistence\u00b9, n (%)', ''),
-        ('All-cause mortality\u00b2, n (%)', ''),
-        ('SARS-CoV-2-related mortality\u00b3, n (%)', ''),
-        ('AE\u2074, n (%)', ''),
-    ],
-    names=['Outcomes', ''],
-)
+index = [
+    'SARS-CoV-2 Persistence\u00b9, n (%)',
+    'All-cause mortality\u00b2, n (%)',
+    'SARS-CoV-2-related mortality\u00b3, n (%)',
+    'AE\u2074, n (%)',
+]
 
 
 def build_table_B():

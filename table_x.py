@@ -118,8 +118,9 @@ def build_table_x():
     t_x.at[('Duration', 'Duration range, days'), 'Combination'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
     p_dur = cont_test(days_m.dropna(), days_c.dropna())
-    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
-    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', ''), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = ''
+    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = ''
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '

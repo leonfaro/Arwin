@@ -29,7 +29,7 @@ def cont_test_method(v1, v2):
         n2 = len(v2)
         df = (s1 / n1 + s2 / n2) ** 2 / ((s1 / n1) ** 2 / (n1 - 1) + (s2 / n2) ** 2 / (n2 - 1))
         return f"t-test df={int(round(df))}"
-    return "MWU"
+    return "Mann-Whitney-U"
 
 
 def tests_table_x():
@@ -280,7 +280,7 @@ def tests_table_B():
     info = {}
     c = data_preprocessing.COMBO[COL_ERAD].astype(str).str.lower().str.startswith("n")
     m = data_preprocessing.MONO[COL_ERAD].astype(str).str.lower().str.startswith("n")
-    info[("SARS-CoV-2 Persistence\u00b9, n (%)", "")] = chi_or_fisher_test(
+    info["SARS-CoV-2 Persistence\u00b9, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
         int(m.sum()),
@@ -288,7 +288,7 @@ def tests_table_B():
     )
     c = data_preprocessing.COMBO[COL_SURV].astype(str).str.lower().str.startswith("n")
     m = data_preprocessing.MONO[COL_SURV].astype(str).str.lower().str.startswith("n")
-    info[("All-cause mortality\u00b2, n (%)", "")] = chi_or_fisher_test(
+    info["All-cause mortality\u00b2, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
         int(m.sum()),
@@ -302,7 +302,7 @@ def tests_table_B():
         data_preprocessing.MONO[COL_ERAD].astype(str).str.lower().str.startswith("n")
         & data_preprocessing.MONO[COL_SURV].astype(str).str.lower().str.startswith("n")
     )
-    info[("SARS-CoV-2-related mortality\u00b3, n (%)", "")] = chi_or_fisher_test(
+    info["SARS-CoV-2-related mortality\u00b3, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
         int(m.sum()),
@@ -310,7 +310,7 @@ def tests_table_B():
     )
     c = data_preprocessing.COMBO[COL_AE_YN].astype(str).str.lower().str.startswith("y")
     m = data_preprocessing.MONO[COL_AE_YN].astype(str).str.lower().str.startswith("y")
-    info[("AE\u2074, n (%)", "")] = chi_or_fisher_test(
+    info["AE\u2074, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
         int(m.sum()),
@@ -319,14 +319,20 @@ def tests_table_B():
     return info
 
 
-def section(title, tab, tests):
+def section(title, tab, tests, subrows=True):
     df = tab.copy()
-    if df.index.nlevels == 1:
-        df.index = pd.MultiIndex.from_product([df.index, [""]])
-    df.insert(0, "subrow", df.index.get_level_values(1))
-    df.insert(0, "row", df.index.get_level_values(0))
-    df.loc[df["subrow"] != "", "row"] = ""
-    df["test"] = [tests.get(idx, "") for idx in tab.index]
+    if subrows:
+        if df.index.nlevels == 1:
+            df.index = pd.MultiIndex.from_product([df.index, [""]])
+        df.insert(0, "subrow", df.index.get_level_values(1))
+        df.insert(0, "row", df.index.get_level_values(0))
+        df.loc[df["subrow"] != "", "row"] = ""
+        df["test"] = [tests.get(idx, "") for idx in tab.index]
+    else:
+        if df.index.nlevels > 1:
+            df.index = df.index.get_level_values(0)
+        df.insert(0, "row", df.index)
+        df["test"] = [tests.get(idx, "") for idx in df.index]
     body = df.reset_index(drop=True).to_markdown(index=False)
     foot = tab.attrs.get("footnote", "").strip()
     foot = re.sub(r"\s*(?=\d+:)", "\n", foot)
@@ -379,10 +385,10 @@ def main():
     out_tab = "tables.md"
     clean(out_tab)
     with open(out_tab, "w") as f:
-        f.write(section("Table X", t1, m1))
-        f.write(section("Table Y", t2, m2))
-        f.write(section("Table Z", t3, m3))
-        f.write(section("Table B", t4, m4))
+        f.write(section("Table X. Treatment Approach", t1, m1))
+        f.write(section("Table Y. Demographics and Clinical Characteristics", t2, m2))
+        f.write(section("Table Z. Detailed Patient Characteristics", t3, m3))
+        f.write(section("Table B. Outcomes in all cohorts", t4, m4, subrows=False))
     out_code = "code.md"
     clean(out_code)
     with open(out_code, "w") as f:
