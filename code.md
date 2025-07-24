@@ -1,0 +1,974 @@
+## data_preprocessing.py
+
+```python
+import pandas as pd
+import numpy as np
+import re
+from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
+FILE_PATH = 'data characteristics v9, clean.xlsx'
+COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
+COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
+COL_THERAPY = (
+    '2nd line treatment form of therapy \n[m / c]\nmono: only Paxlovid\n'
+    'combination: Paxlovid + any other antiviral drugs'
+)
+COL_EXT = '2nd line extended Paxlovid treatment \ntotal days [courses]'
+COL_SEX = 'sex\n[male, female]'
+COL_AGE = 'age'
+COL_DIS = 'Baseline disease cohort \n[a=autoimmunity, m=malignancy, t=transplant]'
+COL_BASE = 'Baseline therapy cohort'
+COL_GC = 'any glucocorticosteroid usage\n[yes / no]'
+COL_VACC = 'Vaccination \n[yes / no] (doses)'
+COL_CT = 'CT lung changes?\n[yes / no]'
+COL_HOSP = 'Hospitalization\n[yes / no]'
+COL_REP = 'SARS-CoV-2 replication\n[days]'
+COL_GENO = 'SARS-CoV-2 genotype'
+COL_SURV = 'survival outcome\n[yes / no]'
+COL_AE_TYPE = 'type of adverse event'
+
+
+def load_sheet(primary, alt):
+    try:
+        return pd.read_excel(FILE_PATH, sheet_name=primary)
+    except ValueError:
+        return pd.read_excel(FILE_PATH, sheet_name=alt)
+
+
+TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104').iloc[:104]
+MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
+COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+for _df in (TOTAL, MONO, COMBO):
+    if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
+        _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
+    for c in list(_df.columns):
+        if c.startswith('2nd line extended Paxlovid treatment'):
+            _df.rename(columns={c: COL_EXT}, inplace=True)
+    s = _df[COL_OTHER].astype(str).str.lower()
+    _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
+    _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
+    _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
+    nn = s.str.strip().ne('none') & s.str.contains('[a-z]', na=False)
+    _df['flag_other'] = nn & ~(_df['flag_rdv'] | _df['flag_mpv'])
+DF_mono = MONO.copy()
+DF_comb = COMBO.copy()
+
+
+def parse_ext(series: pd.Series):
+    pattern = r'(\d+(?:\.\d+)?)\s*(?:\(|\[)?(\d+)(?:\)|\])?'
+    tmp = series.astype(str).str.extract(pattern)
+    days = tmp[0].astype(float)
+    courses = tmp[1].astype(float)
+    return days, courses
+
+
+def chi_or_fisher(a11, a12, a21, a22):
+    try:
+        exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
+    except ValueError:
+        return fisher_exact([[a11, a12], [a21, a22]])[1]
+    if (exp < 5).any():
+        return fisher_exact([[a11, a12], [a21, a22]])[1]
+    return chi2_contingency([[a11, a12], [a21, a22]])[1]
+
+
+def cont_test(v1, v2):
+    if shapiro(v1).pvalue >= 0.05 and shapiro(v2).pvalue >= 0.05:
+        return ttest_ind(v1, v2, equal_var=False).pvalue
+    return mannwhitneyu(v1, v2).pvalue
+
+
+def parse_vacc(x: str):
+    s = str(x).lower()
+    m = pd.Series(s).str.extract(r'(\d+)')[0]
+    dose = float(m.iloc[0]) if m.notna().any() else np.nan
+    if s.startswith('y'):
+        return 'Yes', dose
+    if s.startswith('n'):
+        return 'No', dose
+    return 'Unknown', dose
+
+
+def group_immuno(x: str) -> str:
+    tags = re.split(r'[,\s]+', str(x).lower())
+    labs = set()
+    for t in tags:
+        if not t:
+            continue
+        if 'cd20' in t:
+            labs.add('CD20')
+        elif 'car' in t:
+            labs.add('CAR-T')
+        elif 'hsct' in t:
+            labs.add('HSCT')
+        elif 'none' in t:
+            labs.add('none')
+        else:
+            labs.add('Other')
+    if not labs:
+        return 'none'
+    return labs.pop() if len(labs) == 1 else 'Mixed'
+
+
+def heme_subtype(x):
+    s = str(x).lower()
+    if 'dlbcl' in s:
+        return 'DLBCL'
+    if 'all' in s:
+        return 'ALL'
+    if 'cll' in s and ',' not in s:
+        return 'CLL'
+    if 'aml' in s:
+        return 'AML'
+    if 'follicular' in s or s.strip() == 'fl' or ' fl' in s:
+        return 'FL'
+    if 'nhl' in s or 'lymphoma' in s or 'mcl' in s or 'lpl' in s or 'malt' in s:
+        return 'NHL'
+    if 'mm' in s or 'pcl' in s or 'myeloma' in s:
+        return 'MM'
+    if ',' in s or '+' in s:
+        return 'Mixed'
+    if s.strip():
+        return 'Other'
+    return None
+
+
+def auto_subtype(x):
+    s = str(x).lower()
+    if 'mctd' in s:
+        return 'MCTD'
+    if 'rheumatoid' in s or s.strip() == 'ra':
+        return 'RA'
+    if 'crest' in s:
+        return 'CREST'
+    if 'ms' in s and 'mcl' not in s:
+        return 'MS'
+    if 'systemic sclerosis' in s:
+        return 'Systemic sclerosis'
+    if 'ulcerosa' in s:
+        return 'Colitis ulcerosa'
+    if 'glomerulonephritis' in s:
+        return 'Glomerulonephritis'
+    if 'nmda' in s:
+        return 'NMDA-receptor encephalitis'
+    return None
+
+
+def transp_subtype(x):
+    s = str(x).lower()
+    if 'lung' in s and 'tx' in s:
+        return 'Lung-TX'
+    if 'kidney' in s and 'tx' in s:
+        return 'Kidney-TX'
+    return None
+
+
+def disease_group(x):
+    s = str(x).lower()
+    if 'm' in s:
+        return 'Haematological malignancy'
+    if 't' in s:
+        return 'Transplantation'
+    if 'a' in s:
+        return 'Autoimmune disease'
+    return None
+
+
+def immuno_cat(x):
+    g = group_immuno(x)
+    if g == 'CD20':
+        return 'Anti-CD-20'
+    if g == 'CAR-T':
+        return 'CAR-T'
+    if g == 'none':
+        return 'None'
+    return 'None'
+
+
+def geno_cat(x):
+    s = str(x).lower()
+    if (
+        s.startswith('ba.5')
+        or s.startswith('ba5')
+        or s.startswith('bf')
+        or s.startswith('bq')
+        or s.startswith('be')
+        or s.startswith('ch')
+        or s.startswith('eg')
+        or s.startswith('fr')
+        or s.startswith('jg')
+        or s.startswith('hh')
+    ):
+        return 'BA.5-derived Omicron subvariant'
+    if 'ba.2' in s or s.startswith(('ba2', 'xd', 'xay')):
+        return 'BA.2-derived Omicron subvariant'
+    if 'ba.1' in s or s.startswith('ba1'):
+        return 'BA.1-derived Omicron subvariant'
+    if s:
+        return 'Other'
+    return None
+
+
+def ae_cat(x):
+    s = str(x).lower()
+    if 'thrombocytopenia' in s:
+        return 'Thrombocytopenia'
+    if not s or s in {'none', 'n', 'nan'}:
+        return 'None'
+    return 'Other'
+
+
+def fmt_p(p):
+    if p < 0.001:
+        return '<0.001'
+    return f'{round(p, 3):.3f}'
+
+
+def fmt_pct(n: int, d: int) -> str:
+    return f'{n} ({n / d * 100:.1f}%)' if d else '0 (0.0%)'
+
+
+def fmt_iqr(series: pd.Series) -> str:
+    return f'{int(series.median())} ({int(series.quantile(0.25))}-{int(series.quantile(0.75))})'
+
+
+def fmt_range(series: pd.Series) -> str:
+    return f'{int(series.min())}-{int(series.max())}'
+
+
+def rate_calc(ft, fm, fc):
+    nt = int(ft.sum())
+    nm = int(fm.sum())
+    nc = int(fc.sum())
+    p = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
+    return nt, nm, nc, p
+
+
+def vec_calc(vt, vm, vc):
+    vt = pd.to_numeric(vt, errors='coerce').dropna()
+    vm = pd.to_numeric(vm, errors='coerce').dropna()
+    vc = pd.to_numeric(vc, errors='coerce').dropna()
+    return vt, vm, vc, cont_test(vm, vc)
+
+
+def fill_rate(tab, row, ft, fm, fc, blank=False):
+    nt, nm, nc, p = rate_calc(ft, fm, fc)
+    tab.at[row, 'Total'] = fmt_pct(nt, len(ft))
+    tab.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
+    tab.at[row, 'Combination'] = fmt_pct(nc, len(fc))
+    tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
+    return nt, nm, nc, p
+
+
+def fill_median_iqr(tab, row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    tab.at[row, 'Total'] = fmt_iqr(vt)
+    tab.at[row, 'Monotherapy'] = fmt_iqr(vm)
+    tab.at[row, 'Combination'] = fmt_iqr(vc)
+    tab.at[row, 'p-value'] = fmt_p(p)
+    return vt, vm, vc, p
+
+
+def fill_mean_range(tab, row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    tab.at[row, 'Total'] = f'{vt.mean():.1f} ({fmt_range(vt)})'
+    tab.at[row, 'Monotherapy'] = f'{vm.mean():.1f} ({fmt_range(vm)})'
+    tab.at[row, 'Combination'] = f'{vc.mean():.1f} ({fmt_range(vc)})'
+    tab.at[row, 'p-value'] = fmt_p(p)
+    return vt, vm, vc, p
+
+
+def fill_range(tab, row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    tab.at[row, 'Total'] = fmt_range(vt)
+    tab.at[row, 'Monotherapy'] = fmt_range(vm)
+    tab.at[row, 'Combination'] = fmt_range(vc)
+    tab.at[row, 'p-value'] = fmt_p(p)
+    return vt, vm, vc, p
+
+
+def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
+    df['age_vec'] = pd.to_numeric(df[COL_AGE], errors='coerce')
+    df['flag_female'] = df[COL_SEX].astype(str).str.lower().str.startswith('f')
+    dis = df['baseline disease']
+    df['heme'] = dis.map(heme_subtype)
+    df['auto'] = dis.map(auto_subtype)
+    df['trans'] = dis.map(transp_subtype)
+    df['group'] = df[COL_DIS].map(disease_group)
+    df['immu'] = df[COL_BASE].map(immuno_cat)
+    s = df[COL_DIS].astype(str).str.lower()
+    df['flag_malign'] = s.str.contains('m')
+    df['flag_autoimm'] = s.str.contains('a')
+    df['flag_transpl'] = s.str.contains('t')
+    base = df[COL_BASE].map(group_immuno)
+    df['flag_cd20'] = base == 'CD20'
+    df['flag_cart'] = base == 'CAR-T'
+    df['flag_hsct'] = base == 'HSCT'
+    df['flag_immuno_none'] = ~(
+        df[['flag_cd20', 'flag_cart', 'flag_hsct']].any(axis=1)
+    ) | (base == 'none')
+    df['flag_gc'] = df[COL_GC].astype(str).str.lower().str.startswith('y')
+    vacc = df[COL_VACC].map(parse_vacc)
+    df['vacc_yes'] = vacc.map(lambda x: x[0] == 'Yes')
+    df['dose_vec'] = vacc.map(lambda x: x[1])
+    df['flag_ct'] = df[COL_CT].astype(str).str.lower().str.startswith('y')
+    df['flag_hosp'] = df[COL_HOSP].astype(str).str.lower().str.startswith('y')
+    df['rep_vec'] = pd.to_numeric(df[COL_REP], errors='coerce')
+    df['geno'] = df[COL_GENO].map(geno_cat)
+    df['flag_long'] = df['rep_vec'] >= 14
+    df['flag_surv'] = df[COL_SURV].astype(str).str.lower().str.startswith('y')
+    df['adv'] = df[COL_AE_TYPE].map(ae_cat)
+    return df
+
+
+add_flags_extended(TOTAL)
+add_flags_extended(MONO)
+add_flags_extended(COMBO)
+
+
+def baseline_stats() -> pd.DataFrame:
+    labels = ['CD20', 'CAR-T', 'HSCT', 'Other', 'none', 'Mixed']
+    t = TOTAL[COL_BASE].map(group_immuno)
+    m = MONO[COL_BASE].map(group_immuno)
+    c = COMBO[COL_BASE].map(group_immuno)
+    df = pd.DataFrame(index=labels, columns=[
+        'Total n',
+        'Total %',
+        'Mono n',
+        'Mono %',
+        'Combo n',
+        'Combo %',
+        'p-value',
+    ])
+    for lab in labels:
+        a11 = int((c == lab).sum())
+        a12 = len(c) - a11
+        a21 = int((m == lab).sum())
+        a22 = len(m) - a21
+        p = chi_or_fisher(a11, a12, a21, a22)
+        df.loc[lab] = [
+            int((t == lab).sum()),
+            (t == lab).mean() * 100,
+            a21,
+            (m == lab).mean() * 100,
+            a11,
+            (c == lab).mean() * 100,
+            fmt_p(p),
+        ]
+    return df
+
+
+if __name__ == '__main__':
+    print(TOTAL.shape)
+    print(MONO.shape)
+    print(COMBO.shape)
+    print(baseline_stats())
+
+```
+
+## table_x.py
+
+```python
+    TOTAL,
+    MONO,
+    COMBO,
+    COL_EXT,
+    COL_OTHER,
+    COL_THERAPY,
+
+    parse_ext,
+    fmt_pct,
+    fmt_p,
+    fmt_iqr,
+    fmt_range,
+    cont_test,
+    chi_or_fisher,
+    rate_calc,
+    fill_rate,
+)
+
+
+def build_table_x():
+    days_t, courses_t = parse_ext(TOTAL[COL_EXT])
+    days_m, courses_m = parse_ext(MONO[COL_EXT])
+    days_c, courses_c = parse_ext(COMBO[COL_EXT])
+    index = pd.MultiIndex.from_tuples(
+        [
+            ('N =', ''),
+            ('First-line therapy\u00b9, n (%)', ''),
+            ('First-line therapy\u00b9, n (%)', 'Remdesivir'),
+            ('First-line therapy\u00b9, n (%)', 'Molnupiravir'),
+            ('First-line therapy\u00b9, n (%)', 'Standard 5-day Paxlovid'),
+            ('First-line therapy\u00b9, n (%)', 'Other antivirals'),
+            ('First-line therapy\u00b9, n (%)', 'None'),
+            ('Last line therapy\u00b2, n (%)', ''),
+            ('Last line therapy\u00b2, n (%)', 'Combination therapy'),
+            ('Last line therapy\u00b2, n (%)', 'Monotherapy'),
+            ('Treatment courses, n (%)', ''),
+            ('Treatment courses, n (%)', 'Single prolonged course'),
+            ('Treatment courses, n (%)', 'Multiple courses'),
+            ('Duration', ''),
+            ('Duration', 'Median duration, days (IQR)'),
+            ('Duration', 'Duration range, days'),
+        ],
+        names=['Category', 'Subcategory'],
+    )
+    t_x = pd.DataFrame(index=index, columns=[
+        'Total',
+        'Monotherapy',
+        'Combination',
+        'p-value',
+    ])
+    t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+
+    def add_rate(row, st, sm, sc):
+        fill_rate(t_x, row, st, sm, sc, blank=st.sum() == 0)
+
+    labels = [
+        'Standard 5-day Paxlovid',
+        'Remdesivir',
+        'Molnupiravir',
+        'Other antivirals',
+    ]
+    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    for lbl, col in zip(labels, cols):
+        add_rate(
+            ('First-line therapy\u00b9, n (%)', lbl),
+            TOTAL[col],
+            MONO[col],
+            COMBO[col],
+        )
+    add_rate(
+        ('First-line therapy\u00b9, n (%)', 'None'),
+        TOTAL[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        MONO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        COMBO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+    )
+    t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
+    com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
+    mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)
+    idx = ('Last line therapy\u00b2, n (%)', 'Combination therapy')
+    t_x.at[idx, 'Total'] = fmt_pct(int(com_flag_t.sum()), len(TOTAL))
+    t_x.at[idx, 'Monotherapy'] = fmt_pct(0, len(MONO))
+    t_x.at[idx, 'Combination'] = fmt_pct(len(COMBO), len(COMBO))
+    p_last = chi_or_fisher(len(COMBO), 0, 0, len(MONO))
+    t_x.at[idx, 'p-value'] = ''
+    idx = ('Last line therapy\u00b2, n (%)', 'Monotherapy')
+    t_x.at[idx, 'Total'] = fmt_pct(int(mono_flag_t.sum()), len(TOTAL))
+    t_x.at[idx, 'Monotherapy'] = fmt_pct(len(MONO), len(MONO))
+    t_x.at[idx, 'Combination'] = fmt_pct(0, len(COMBO))
+    t_x.at[idx, 'p-value'] = ''
+    t_x.loc[('Last line therapy\u00b2, n (%)', '')] = ''
+    t_x.at[('Last line therapy\u00b2, n (%)', ''), 'p-value'] = fmt_p(p_last)
+    single_t = courses_t == 1
+    multi_t = courses_t > 1
+    single_m = courses_m == 1
+    multi_m = courses_m > 1
+    single_c = courses_c == 1
+    multi_c = courses_c > 1
+    row = ('Treatment courses, n (%)', 'Single prolonged course')
+    t_x.at[row, 'Total'] = fmt_pct(int(single_t.sum()), len(TOTAL))
+    t_x.at[row, 'Monotherapy'] = fmt_pct(int(single_m.sum()), len(MONO))
+    t_x.at[row, 'Combination'] = fmt_pct(int(single_c.sum()), len(COMBO))
+    row = ('Treatment courses, n (%)', 'Multiple courses')
+    t_x.at[row, 'Total'] = fmt_pct(int(multi_t.sum()), len(TOTAL))
+    t_x.at[row, 'Monotherapy'] = fmt_pct(int(multi_m.sum()), len(MONO))
+    t_x.at[row, 'Combination'] = fmt_pct(int(multi_c.sum()), len(COMBO))
+    p_course = chi_or_fisher(int(single_c.sum()), int(multi_c.sum()), int(single_m.sum()), int(multi_m.sum()))
+    t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'p-value'] = ''
+    t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'p-value'] = ''
+    t_x.loc[('Treatment courses, n (%)', '')] = ''
+    t_x.at[('Treatment courses, n (%)', ''), 'p-value'] = fmt_p(p_course)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Total'] = fmt_iqr(days_t)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Monotherapy'] = fmt_iqr(days_m)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Combination'] = fmt_iqr(days_c)
+    t_x.at[('Duration', 'Duration range, days'), 'Total'] = fmt_range(days_t)
+    t_x.at[('Duration', 'Duration range, days'), 'Monotherapy'] = fmt_range(days_m)
+    t_x.at[('Duration', 'Duration range, days'), 'Combination'] = fmt_range(days_c)
+    t_x.loc[('Duration', '')] = ''
+    p_dur = cont_test(days_m.dropna(), days_c.dropna())
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
+    foot = (
+        '- NMV-r, nirmatrelvir-ritonavir.\n'
+        '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
+        'including standard 5-day Paxlovid courses with or without other antivirals.\n'
+        '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
+        'when no subsequent antiviral therapy was administered.'
+    )
+    t_x.attrs['footnote'] = foot
+    return t_x
+
+
+def build_table_x_raw():
+    days_t, courses_t = parse_ext(TOTAL[COL_EXT])
+    days_m, courses_m = parse_ext(MONO[COL_EXT])
+    days_c, courses_c = parse_ext(COMBO[COL_EXT])
+    index = pd.MultiIndex.from_tuples(
+        [
+            ('First-line therapy\u00b9, n', 'Remdesivir'),
+            ('First-line therapy\u00b9, n', 'Molnupiravir'),
+            ('First-line therapy\u00b9, n', 'Standard 5-day Paxlovid'),
+            ('First-line therapy\u00b9, n', 'Other antivirals'),
+            ('First-line therapy\u00b9, n', 'None'),
+            ('Last line therapy\u00b2, n', 'Combination therapy'),
+            ('Last line therapy\u00b2, n', 'Monotherapy'),
+            ('Treatment courses, n', 'Single prolonged course'),
+            ('Treatment courses, n', 'Multiple courses'),
+            ('Duration, days', 'Median'),
+            ('Duration, days', 'Min'),
+            ('Duration, days', 'Max'),
+        ],
+        names=['Category', 'Subcategory'],
+    )
+    raw = pd.DataFrame(index=index, columns=[
+        'Total',
+        'Monotherapy',
+        'Combination',
+        'p-value',
+    ])
+
+    def add(row, st, sm, sc):
+        nt, nm, nc, p = rate_calc(st, sm, sc)
+        raw.at[row, 'Total'] = nt
+        raw.at[row, 'Monotherapy'] = nm
+        raw.at[row, 'Combination'] = nc
+        if nt:
+            raw.at[row, 'p-value'] = p
+
+    labels = [
+        'Standard 5-day Paxlovid',
+        'Remdesivir',
+        'Molnupiravir',
+        'Other antivirals',
+    ]
+    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    for lbl, col in zip(labels, cols):
+        add(('First-line therapy\u00b9, n', lbl), TOTAL[col], MONO[col], COMBO[col])
+    add(
+        ('First-line therapy\u00b9, n', 'None'),
+        TOTAL[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        MONO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        COMBO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+    )
+    com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
+    mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)
+    add(
+        ('Last line therapy\u00b2, n', 'Combination therapy'),
+        com_flag_t,
+        MONO[COL_THERAPY].str.startswith('c', na=False),
+        COMBO[COL_THERAPY].str.startswith('c', na=False),
+    )
+    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'p-value'] = chi_or_fisher(
+        len(COMBO),
+        0,
+        0,
+        len(MONO),
+    )
+    raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Total'] = int(mono_flag_t.sum())
+    raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Monotherapy'] = len(MONO)
+    raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Combination'] = 0
+    raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'p-value'] = None
+    single_t = courses_t == 1
+    multi_t = courses_t > 1
+    single_m = courses_m == 1
+    multi_m = courses_m > 1
+    single_c = courses_c == 1
+    multi_c = courses_c > 1
+    add(('Treatment courses, n', 'Single prolonged course'), single_t, single_m, single_c)
+    raw.at[('Treatment courses, n', 'Multiple courses'), 'Total'] = int(multi_t.sum())
+    raw.at[('Treatment courses, n', 'Multiple courses'), 'Monotherapy'] = int(multi_m.sum())
+    raw.at[('Treatment courses, n', 'Multiple courses'), 'Combination'] = int(multi_c.sum())
+    p_course = chi_or_fisher(int(single_c.sum()), int(multi_c.sum()), int(single_m.sum()), int(multi_m.sum()))
+    raw.at[('Treatment courses, n', 'Single prolonged course'), 'p-value'] = p_course
+    raw.at[('Treatment courses, n', 'Multiple courses'), 'p-value'] = None
+    raw.at[('Duration, days', 'Median'), 'Total'] = days_t.median()
+    raw.at[('Duration, days', 'Median'), 'Monotherapy'] = days_m.median()
+    raw.at[('Duration, days', 'Median'), 'Combination'] = days_c.median()
+    raw.at[('Duration, days', 'Min'), 'Total'] = days_t.min()
+    raw.at[('Duration, days', 'Min'), 'Monotherapy'] = days_m.min()
+    raw.at[('Duration, days', 'Min'), 'Combination'] = days_c.min()
+    raw.at[('Duration, days', 'Max'), 'Total'] = days_t.max()
+    raw.at[('Duration, days', 'Max'), 'Monotherapy'] = days_m.max()
+    raw.at[('Duration, days', 'Max'), 'Combination'] = days_c.max()
+    raw.at[('Duration, days', 'Median'), 'p-value'] = cont_test(days_m.dropna(), days_c.dropna())
+    raw.at[('Duration, days', 'Min'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
+    raw.at[('Duration, days', 'Max'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
+    foot = (
+        '- NMV-r, nirmatrelvir-ritonavir.\n'
+        '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
+        'including standard 5-day Paxlovid courses with or without other antivirals.\n'
+        '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
+        'when no subsequent antiviral therapy was administered.'
+    )
+    raw.attrs['footnote'] = foot
+    return raw
+
+
+if __name__ == '__main__':
+    print('Table X. Treatment Approach.')
+    print(build_table_x().to_string())
+    print('- NMV-r, nirmatrelvir-ritonavir.')
+    print(
+        '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
+        'including standard 5-day Paxlovid courses with or without other antivirals.'
+    )
+    print(
+        '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
+        'when no subsequent antiviral therapy was administered.'
+    )
+```
+
+## table_y.py
+
+```python
+    TOTAL,
+    MONO,
+    COMBO,
+    fill_rate,
+    fill_median_iqr,
+    fill_mean_range,
+)
+
+index = pd.MultiIndex.from_tuples(
+    [
+        ('N =', ''),
+        ('Age, median (IQR)', ''),
+        ('Female sex, n (%)', ''),
+        ('Underlying conditions, n (%)', ''),
+        ('Underlying conditions, n (%)', 'Hematological malignancy'),
+        ('Underlying conditions, n (%)', 'Autoimmune'),
+        ('Underlying conditions, n (%)', 'Transplantation'),
+        ('Immunosuppressive treatment, n (%)', ''),
+        ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
+        ('Immunosuppressive treatment, n (%)', 'CAR-T'),
+        ('Immunosuppressive treatment, n (%)', 'HSCT'),
+        ('Immunosuppressive treatment, n (%)', 'None'),
+        ('Glucocorticoid use, n (%)', ''),
+        ('SARS-CoV-2 vaccination, n (%)', ''),
+        ('Mean Vaccination doses, n (range)', ''),
+        ('Thoracic CT changes, n (%)', ''),
+        ('Treatment setting\u00b9, n (%)', ''),
+        ('Treatment setting\u00b9, n (%)', 'Hospital'),
+        ('Treatment setting\u00b9, n (%)', 'Outpatient'),
+    ],
+    names=['Category', 'Subcategory'],
+)
+
+columns = [
+    'Total',
+    'Monotherapy',
+    'Combination',
+    'p-value',
+]
+
+table_y = pd.DataFrame(index=index, columns=columns)
+table_y_raw = pd.DataFrame(index=index, columns=columns)
+table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+
+
+def add_rate(row, ft, fm, fc):
+    nt, nm, nc, p = fill_rate(table_y, row, ft, fm, fc)
+    table_y_raw.at[row, 'Total'] = nt
+    table_y_raw.at[row, 'Monotherapy'] = nm
+    table_y_raw.at[row, 'Combination'] = nc
+    table_y_raw.at[row, 'p-value'] = p
+
+
+def add_median_iqr(row, vt, vm, vc):
+    vt, vm, vc, p = fill_median_iqr(table_y, row, vt, vm, vc)
+    table_y_raw.at[row, 'Total'] = vt.median()
+    table_y_raw.at[row, 'Monotherapy'] = vm.median()
+    table_y_raw.at[row, 'Combination'] = vc.median()
+    table_y_raw.at[row, 'p-value'] = p
+
+
+def add_mean_range(row, vt, vm, vc):
+    vt, vm, vc, p = fill_mean_range(table_y, row, vt, vm, vc)
+    table_y_raw.at[row, 'Total'] = vt.mean()
+    table_y_raw.at[row, 'Monotherapy'] = vm.mean()
+    table_y_raw.at[row, 'Combination'] = vc.mean()
+    table_y_raw.at[row, 'p-value'] = p
+
+
+def build_table_y():
+    table_y.loc[:] = None
+    table_y_raw.loc[:] = None
+    table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+    add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
+    add_rate(('Female sex, n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
+    table_y.loc[('Underlying conditions, n (%)', '')] = ''
+    table_y_raw.loc[('Underlying conditions, n (%)', '')] = None
+    pairs = [
+        ('Hematological malignancy', 'flag_malign'),
+        ('Autoimmune', 'flag_autoimm'),
+        ('Transplantation', 'flag_transpl'),
+    ]
+    for lbl, col in pairs:
+        add_rate(('Underlying conditions, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
+    table_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    table_y_raw.loc[('Immunosuppressive treatment, n (%)', '')] = None
+    pairs = [
+        ('Anti-CD20', 'flag_cd20'),
+        ('CAR-T', 'flag_cart'),
+        ('HSCT', 'flag_hsct'),
+        ('None', 'flag_immuno_none'),
+    ]
+    for lbl, col in pairs:
+        add_rate(('Immunosuppressive treatment, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
+    add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
+    add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
+    add_mean_range(
+        ('Mean Vaccination doses, n (range)', ''),
+        TOTAL['dose_vec'],
+        MONO['dose_vec'],
+        COMBO['dose_vec'],
+    )
+    add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
+
+    table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
+    table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
+    add_rate(
+        ('Treatment setting\u00b9, n (%)', 'Hospital'),
+        TOTAL['flag_hosp'],
+        MONO['flag_hosp'],
+        COMBO['flag_hosp'],
+    )
+    add_rate(
+        ('Treatment setting\u00b9, n (%)', 'Outpatient'),
+        ~TOTAL['flag_hosp'],
+        ~MONO['flag_hosp'],
+        ~COMBO['flag_hosp'],
+    )
+    foot = (
+        '- NMV-r, nirmatrelvir-ritonavir.\n'
+        '1: Treatment setting where prolonged NMV-r was administered.'
+    )
+    table_y.attrs['footnote'] = foot
+    table_y_raw.attrs['footnote'] = foot
+    return table_y
+
+
+def build_table_y_raw():
+    if table_y_raw.isnull().all().all():
+        build_table_y()
+    return table_y_raw
+
+
+if __name__ == '__main__':
+    tab = build_table_y()
+    tab.to_excel('table_y_v7.xlsx')
+    build_table_y_raw().to_csv('table_y_v7.csv')
+    print(tab.shape)
+    print('Table Y. Demographics and Clinical Characteristics.')
+    print(build_table_y().to_string())
+    print('- NMV-r, nirmatrelvir-ritonavir.')
+    print('1: Treatment setting where prolonged NMV-r was administered.')
+
+__all__ = [
+    'table_y',
+    'table_y_raw',
+    'TOTAL',
+    'MONO',
+    'COMBO',
+    'build_table_y',
+    'build_table_y_raw',
+    'add_rate',
+    'add_median_iqr',
+    'add_mean_range',
+]
+```
+
+## table_z.py
+
+```python
+    TOTAL,
+    MONO,
+    COMBO,
+    fill_rate,
+    fill_median_iqr,
+    fill_range,
+)
+
+index = pd.MultiIndex.from_tuples(
+    [
+        ('N =', ''),
+        ('Age, median (IQR)', ''),
+        ('Sex (female), n (%)', ''),
+        ('Haematological malignancy, n (%)', ''),
+        ('Haematological malignancy, n (%)', 'Other'),
+        ('Haematological malignancy, n (%)', 'DLBCL'),
+        ('Haematological malignancy, n (%)', 'ALL'),
+        ('Haematological malignancy, n (%)', 'CLL'),
+        ('Haematological malignancy, n (%)', 'AML'),
+        ('Haematological malignancy, n (%)', 'FL'),
+        ('Haematological malignancy, n (%)', 'NHL'),
+        ('Haematological malignancy, n (%)', 'MM'),
+        ('Haematological malignancy, n (%)', 'Mixed'),
+        ('Autoimmune disease, n (%)', ''),
+        ('Autoimmune disease, n (%)', 'MCTD'),
+        ('Autoimmune disease, n (%)', 'RA'),
+        ('Autoimmune disease, n (%)', 'CREST'),
+        ('Autoimmune disease, n (%)', 'MS'),
+        ('Autoimmune disease, n (%)', 'Systemic sclerosis'),
+        ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
+        ('Autoimmune disease, n (%)', 'Glomerulonephritis'),
+        ('Autoimmune disease, n (%)', 'NMDA-receptor encephalitis'),
+        ('Transplantation, n (%)', ''),
+        ('Transplantation, n (%)', 'Lung-TX'),
+        ('Transplantation, n (%)', 'Kidney-TX'),
+        ('Disease group, n (%)', ''),
+        ('Disease group, n (%)', 'Haematological malignancy'),
+        ('Disease group, n (%)', 'Autoimmune disease'),
+        ('Disease group, n (%)', 'Transplantation'),
+        ('Immunosuppressive treatment, n (%)', ''),
+        ('Immunosuppressive treatment, n (%)', 'None'),
+        ('Immunosuppressive treatment, n (%)', 'Anti-CD-20'),
+        ('Immunosuppressive treatment, n (%)', 'CAR-T'),
+        ('Glucocorticoid use, n (%)', ''),
+        ('SARS-CoV-2 vaccination, n (%)', ''),
+        ('Number of vaccine doses, n (range)', ''),
+        ('Thoracic CT changes, n (%)', ''),
+        ('Duration of SARS-CoV-2 replication (days), median (IQR)', ''),
+        ('SARS-CoV-2 genotype, n (%)', ''),
+        ('SARS-CoV-2 genotype, n (%)', 'BA.5-derived Omicron subvariant'),
+        ('SARS-CoV-2 genotype, n (%)', 'BA.2-derived Omicron subvariant'),
+        ('SARS-CoV-2 genotype, n (%)', 'BA.1-derived Omicron subvariant'),
+        ('SARS-CoV-2 genotype, n (%)', 'Other'),
+        ('Prolonged viral shedding (\u2265\u202f14\u202fdays), n (%)', ''),
+        ('Survival, n (%)', ''),
+        ('Adverse events, n (%)', ''),
+        ('Adverse events, n (%)', 'None'),
+        ('Adverse events, n (%)', 'Thrombocytopenia'),
+        ('Adverse events, n (%)', 'Other'),
+    ],
+    names=['Category', 'Subcategory'],
+)
+
+columns = [
+    'Total',
+    'Monotherapy',
+    'Combination',
+    'p-value',
+]
+
+table_z = pd.DataFrame(index=index, columns=columns)
+table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+
+
+def add_rate(row, ft, fm, fc):
+    fill_rate(table_z, row, ft, fm, fc)
+
+
+def add_median_iqr(row, vt, vm, vc):
+    fill_median_iqr(table_z, row, vt, vm, vc)
+
+
+def add_range(row, vt, vm, vc):
+    fill_range(table_z, row, vt, vm, vc)
+
+
+def build_table_z():
+    table_z.loc[:] = None
+    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_z.loc[('Haematological malignancy, n (%)', '')] = ''
+    table_z.loc[('Autoimmune disease, n (%)', '')] = ''
+    table_z.loc[('Transplantation, n (%)', '')] = ''
+    table_z.loc[('Disease group, n (%)', '')] = ''
+    table_z.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    table_z.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
+    table_z.loc[('Adverse events, n (%)', '')] = ''
+    add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
+    add_rate(('Sex (female), n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
+    labs = ['Other', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
+    for lab in labs:
+        add_rate(
+            ('Haematological malignancy, n (%)', lab),
+            TOTAL['heme'] == lab,
+            MONO['heme'] == lab,
+            COMBO['heme'] == lab,
+        )
+    labs = [
+        'MCTD',
+        'RA',
+        'CREST',
+        'MS',
+        'Systemic sclerosis',
+        'Colitis ulcerosa',
+        'Glomerulonephritis',
+        'NMDA-receptor encephalitis',
+    ]
+    for lab in labs:
+        add_rate(
+            ('Autoimmune disease, n (%)', lab),
+            TOTAL['auto'] == lab,
+            MONO['auto'] == lab,
+            COMBO['auto'] == lab,
+        )
+    for lab in ['Lung-TX', 'Kidney-TX']:
+        add_rate(
+            ('Transplantation, n (%)', lab),
+            TOTAL['trans'] == lab,
+            MONO['trans'] == lab,
+            COMBO['trans'] == lab,
+        )
+    for lab in ['Haematological malignancy', 'Autoimmune disease', 'Transplantation']:
+        add_rate(
+            ('Disease group, n (%)', lab),
+            TOTAL['group'] == lab,
+            MONO['group'] == lab,
+            COMBO['group'] == lab,
+        )
+    for lab in ['None', 'Anti-CD-20', 'CAR-T']:
+        add_rate(
+            ('Immunosuppressive treatment, n (%)', lab),
+            TOTAL['immu'] == lab,
+            MONO['immu'] == lab,
+            COMBO['immu'] == lab,
+        )
+    add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
+    add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
+    add_range(('Number of vaccine doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
+    add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
+    add_median_iqr(
+        ('Duration of SARS-CoV-2 replication (days), median (IQR)', ''),
+        TOTAL['rep_vec'],
+        MONO['rep_vec'],
+        COMBO['rep_vec'],
+    )
+    labs = [
+        'BA.5-derived Omicron subvariant',
+        'BA.2-derived Omicron subvariant',
+        'BA.1-derived Omicron subvariant',
+        'Other',
+    ]
+    for lab in labs:
+        add_rate(
+            ('SARS-CoV-2 genotype, n (%)', lab),
+            TOTAL['geno'] == lab,
+            MONO['geno'] == lab,
+            COMBO['geno'] == lab,
+        )
+    add_rate(
+        ('Prolonged viral shedding (\u2265\u202f14\u202fdays), n (%)', ''),
+        TOTAL['flag_long'],
+        MONO['flag_long'],
+        COMBO['flag_long'],
+    )
+    add_rate(
+        ('Survival, n (%)', ''),
+        TOTAL['flag_surv'],
+        MONO['flag_surv'],
+        COMBO['flag_surv'],
+    )
+    for lab in ['None', 'Thrombocytopenia', 'Other']:
+        add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
+    return table_z
+
+
+if __name__ == '__main__':
+    print('Table Z')
+    print(build_table_z().to_string())
+```
+
