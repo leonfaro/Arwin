@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-FILE_PATH = 'data characteristics v9, clean.xlsx'
+FILE_PATH = 'data characteristics v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -37,6 +37,13 @@ COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
 TOTAL_N = len(TOTAL)
 MONO_N = len(MONO)
 COMBO_N = len(COMBO)
+ABBREV_DF = pd.read_excel(
+    FILE_PATH,
+    sheet_name='primary cohort, n=104',
+    usecols='H:I',
+    header=106,
+).dropna(how='all')
+ABBREV_DF.columns = ['Abbreviation', 'Full Form']
 for _df in (TOTAL, MONO, COMBO):
     if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
         _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
@@ -355,6 +362,10 @@ def baseline_stats() -> pd.DataFrame:
             fmt_p(p),
         ]
     return df
+
+
+def export_abbreviations_md(path: str) -> None:
+    ABBREV_DF.to_markdown(path, index=False)
 
 
 if __name__ == '__main__':
