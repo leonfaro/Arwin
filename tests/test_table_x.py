@@ -23,6 +23,7 @@ def test_columns():
         'Monotherapy',
         'Combination',
         'p-value',
+        'Test',
     ]
 
 

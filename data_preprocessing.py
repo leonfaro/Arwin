@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-FILE_PATH = 'data characteristics v9, clean.xlsx'
+FILE_PATH = 'data characteristics v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -63,18 +63,25 @@ def parse_ext(series: pd.Series):
 
 def chi_or_fisher(a11, a12, a21, a22):
     try:
-        exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
+        chi2, p, df, exp = chi2_contingency([[a11, a12], [a21, a22]])
     except ValueError:
-        return fisher_exact([[a11, a12], [a21, a22]])[1]
+        return fisher_exact([[a11, a12], [a21, a22]])[1], 'Fisher'
     if (exp < 5).any():
-        return fisher_exact([[a11, a12], [a21, a22]])[1]
-    return chi2_contingency([[a11, a12], [a21, a22]])[1]
+        return fisher_exact([[a11, a12], [a21, a22]])[1], 'Fisher'
+    return chi2_contingency([[a11, a12], [a21, a22]])[1], 'Chi2 df=1'
 
 
 def cont_test(v1, v2):
     if shapiro(v1).pvalue >= 0.05 and shapiro(v2).pvalue >= 0.05:
-        return ttest_ind(v1, v2, equal_var=False).pvalue
-    return mannwhitneyu(v1, v2).pvalue
+        t = ttest_ind(v1, v2, equal_var=False)
+        n1 = len(v1)
+        n2 = len(v2)
+        s1 = v1.var(ddof=1)
+        s2 = v2.var(ddof=1)
+        df = (s1 / n1 + s2 / n2) ** 2 / ((s1 / n1) ** 2 / (n1 - 1) + (s2 / n2) ** 2 / (n2 - 1))
+        return t.pvalue, f'Welch df={df:.1f}'
+    u, p = mannwhitneyu(v1, v2)
+    return p, f'Mann-Whitney U={u:.1f}'
 
 
 def parse_vacc(x: str):
@@ -239,51 +246,56 @@ def rate_calc(ft, fm, fc):
     nt = int(ft.sum())
     nm = int(fm.sum())
     nc = int(fc.sum())
-    p = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
-    return nt, nm, nc, p
+    p, test = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
+    return nt, nm, nc, p, test
 
 
 def vec_calc(vt, vm, vc):
     vt = pd.to_numeric(vt, errors='coerce').dropna()
     vm = pd.to_numeric(vm, errors='coerce').dropna()
     vc = pd.to_numeric(vc, errors='coerce').dropna()
-    return vt, vm, vc, cont_test(vm, vc)
+    p, test = cont_test(vm, vc)
+    return vt, vm, vc, p, test
 
 
 def fill_rate(tab, row, ft, fm, fc, blank=False):
-    nt, nm, nc, p = rate_calc(ft, fm, fc)
+    nt, nm, nc, p, test = rate_calc(ft, fm, fc)
     tab.at[row, 'Total'] = fmt_pct(nt, TOTAL_N)
     tab.at[row, 'Monotherapy'] = fmt_pct(nm, MONO_N)
     tab.at[row, 'Combination'] = fmt_pct(nc, COMBO_N)
     tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
-    return nt, nm, nc, p
+    tab.at[row, 'Test'] = '' if blank and nt == 0 else test
+    return nt, nm, nc, p, test
 
 
 def fill_median_iqr(tab, row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    vt, vm, vc, p, test = vec_calc(vt, vm, vc)
     tab.at[row, 'Total'] = fmt_iqr(vt)
     tab.at[row, 'Monotherapy'] = fmt_iqr(vm)
     tab.at[row, 'Combination'] = fmt_iqr(vc)
     tab.at[row, 'p-value'] = fmt_p(p)
-    return vt, vm, vc, p
+    tab.at[row, 'Test'] = test
+    return vt, vm, vc, p, test
 
 
 def fill_mean_range(tab, row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    vt, vm, vc, p, test = vec_calc(vt, vm, vc)
     tab.at[row, 'Total'] = f'{vt.mean():.1f} ({fmt_range(vt)})'
     tab.at[row, 'Monotherapy'] = f'{vm.mean():.1f} ({fmt_range(vm)})'
     tab.at[row, 'Combination'] = f'{vc.mean():.1f} ({fmt_range(vc)})'
     tab.at[row, 'p-value'] = fmt_p(p)
-    return vt, vm, vc, p
+    tab.at[row, 'Test'] = test
+    return vt, vm, vc, p, test
 
 
 def fill_range(tab, row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    vt, vm, vc, p, test = vec_calc(vt, vm, vc)
     tab.at[row, 'Total'] = fmt_range(vt)
     tab.at[row, 'Monotherapy'] = fmt_range(vm)
     tab.at[row, 'Combination'] = fmt_range(vc)
     tab.at[row, 'p-value'] = fmt_p(p)
-    return vt, vm, vc, p
+    tab.at[row, 'Test'] = test
+    return vt, vm, vc, p, test
 
 
 def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:

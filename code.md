@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-FILE_PATH = 'data characteristics v9, clean.xlsx'
+FILE_PATH = 'data characteristics v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -37,6 +37,9 @@ def load_sheet(primary, alt):
 TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104').iloc[:104]
 MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
 COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+TOTAL_N = len(TOTAL)
+MONO_N = len(MONO)
+COMBO_N = len(COMBO)
 for _df in (TOTAL, MONO, COMBO):
     if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
         _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
@@ -63,18 +66,25 @@ def parse_ext(series: pd.Series):
 
 def chi_or_fisher(a11, a12, a21, a22):
     try:
-        exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
+        chi2, p, df, exp = chi2_contingency([[a11, a12], [a21, a22]])
     except ValueError:
-        return fisher_exact([[a11, a12], [a21, a22]])[1]
+        return fisher_exact([[a11, a12], [a21, a22]])[1], 'Fisher'
     if (exp < 5).any():
-        return fisher_exact([[a11, a12], [a21, a22]])[1]
-    return chi2_contingency([[a11, a12], [a21, a22]])[1]
+        return fisher_exact([[a11, a12], [a21, a22]])[1], 'Fisher'
+    return chi2_contingency([[a11, a12], [a21, a22]])[1], 'Chi2 df=1'
 
 
 def cont_test(v1, v2):
     if shapiro(v1).pvalue >= 0.05 and shapiro(v2).pvalue >= 0.05:
-        return ttest_ind(v1, v2, equal_var=False).pvalue
-    return mannwhitneyu(v1, v2).pvalue
+        t = ttest_ind(v1, v2, equal_var=False)
+        n1 = len(v1)
+        n2 = len(v2)
+        s1 = v1.var(ddof=1)
+        s2 = v2.var(ddof=1)
+        df = (s1 / n1 + s2 / n2) ** 2 / ((s1 / n1) ** 2 / (n1 - 1) + (s2 / n2) ** 2 / (n2 - 1))
+        return t.pvalue, f'Welch df={df:.1f}'
+    u, p = mannwhitneyu(v1, v2)
+    return p, f'Mann-Whitney U={u:.1f}'
 
 
 def parse_vacc(x: str):
@@ -239,51 +249,56 @@ def rate_calc(ft, fm, fc):
     nt = int(ft.sum())
     nm = int(fm.sum())
     nc = int(fc.sum())
-    p = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
-    return nt, nm, nc, p
+    p, test = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
+    return nt, nm, nc, p, test
 
 
 def vec_calc(vt, vm, vc):
     vt = pd.to_numeric(vt, errors='coerce').dropna()
     vm = pd.to_numeric(vm, errors='coerce').dropna()
     vc = pd.to_numeric(vc, errors='coerce').dropna()
-    return vt, vm, vc, cont_test(vm, vc)
+    p, test = cont_test(vm, vc)
+    return vt, vm, vc, p, test
 
 
 def fill_rate(tab, row, ft, fm, fc, blank=False):
-    nt, nm, nc, p = rate_calc(ft, fm, fc)
-    tab.at[row, 'Total'] = fmt_pct(nt, len(ft))
-    tab.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
-    tab.at[row, 'Combination'] = fmt_pct(nc, len(fc))
+    nt, nm, nc, p, test = rate_calc(ft, fm, fc)
+    tab.at[row, 'Total'] = fmt_pct(nt, TOTAL_N)
+    tab.at[row, 'Monotherapy'] = fmt_pct(nm, MONO_N)
+    tab.at[row, 'Combination'] = fmt_pct(nc, COMBO_N)
     tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
-    return nt, nm, nc, p
+    tab.at[row, 'Test'] = '' if blank and nt == 0 else test
+    return nt, nm, nc, p, test
 
 
 def fill_median_iqr(tab, row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    vt, vm, vc, p, test = vec_calc(vt, vm, vc)
     tab.at[row, 'Total'] = fmt_iqr(vt)
     tab.at[row, 'Monotherapy'] = fmt_iqr(vm)
     tab.at[row, 'Combination'] = fmt_iqr(vc)
     tab.at[row, 'p-value'] = fmt_p(p)
-    return vt, vm, vc, p
+    tab.at[row, 'Test'] = test
+    return vt, vm, vc, p, test
 
 
 def fill_mean_range(tab, row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    vt, vm, vc, p, test = vec_calc(vt, vm, vc)
     tab.at[row, 'Total'] = f'{vt.mean():.1f} ({fmt_range(vt)})'
     tab.at[row, 'Monotherapy'] = f'{vm.mean():.1f} ({fmt_range(vm)})'
     tab.at[row, 'Combination'] = f'{vc.mean():.1f} ({fmt_range(vc)})'
     tab.at[row, 'p-value'] = fmt_p(p)
-    return vt, vm, vc, p
+    tab.at[row, 'Test'] = test
+    return vt, vm, vc, p, test
 
 
 def fill_range(tab, row, vt, vm, vc):
-    vt, vm, vc, p = vec_calc(vt, vm, vc)
+    vt, vm, vc, p, test = vec_calc(vt, vm, vc)
     tab.at[row, 'Total'] = fmt_range(vt)
     tab.at[row, 'Monotherapy'] = fmt_range(vm)
     tab.at[row, 'Combination'] = fmt_range(vc)
     tab.at[row, 'p-value'] = fmt_p(p)
-    return vt, vm, vc, p
+    tab.at[row, 'Test'] = test
+    return vt, vm, vc, p, test
 
 
 def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
@@ -417,8 +432,9 @@ def build_table_x():
         'Monotherapy',
         'Combination',
         'p-value',
+        'Test',
     ])
-    t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
 
     def add_rate(row, st, sm, sc):
         fill_rate(t_x, row, st, sm, sc, blank=st.sum() == 0)
@@ -450,15 +466,18 @@ def build_table_x():
     t_x.at[idx, 'Total'] = fmt_pct(int(com_flag_t.sum()), len(TOTAL))
     t_x.at[idx, 'Monotherapy'] = fmt_pct(0, len(MONO))
     t_x.at[idx, 'Combination'] = fmt_pct(len(COMBO), len(COMBO))
-    p_last = chi_or_fisher(len(COMBO), 0, 0, len(MONO))
+    p_last, test_last = chi_or_fisher(len(COMBO), 0, 0, len(MONO))
     t_x.at[idx, 'p-value'] = ''
+    t_x.at[idx, 'Test'] = ''
     idx = ('Last line therapy\u00b2, n (%)', 'Monotherapy')
     t_x.at[idx, 'Total'] = fmt_pct(int(mono_flag_t.sum()), len(TOTAL))
     t_x.at[idx, 'Monotherapy'] = fmt_pct(len(MONO), len(MONO))
     t_x.at[idx, 'Combination'] = fmt_pct(0, len(COMBO))
     t_x.at[idx, 'p-value'] = ''
+    t_x.at[idx, 'Test'] = ''
     t_x.loc[('Last line therapy\u00b2, n (%)', '')] = ''
     t_x.at[('Last line therapy\u00b2, n (%)', ''), 'p-value'] = fmt_p(p_last)
+    t_x.at[('Last line therapy\u00b2, n (%)', ''), 'Test'] = test_last
     single_t = courses_t == 1
     multi_t = courses_t > 1
     single_m = courses_m == 1
@@ -473,11 +492,19 @@ def build_table_x():
     t_x.at[row, 'Total'] = fmt_pct(int(multi_t.sum()), len(TOTAL))
     t_x.at[row, 'Monotherapy'] = fmt_pct(int(multi_m.sum()), len(MONO))
     t_x.at[row, 'Combination'] = fmt_pct(int(multi_c.sum()), len(COMBO))
-    p_course = chi_or_fisher(int(single_c.sum()), int(multi_c.sum()), int(single_m.sum()), int(multi_m.sum()))
+    p_course, test_course = chi_or_fisher(
+        int(single_c.sum()),
+        int(multi_c.sum()),
+        int(single_m.sum()),
+        int(multi_m.sum()),
+    )
     t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'p-value'] = ''
+    t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'Test'] = ''
     t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'p-value'] = ''
+    t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'Test'] = ''
     t_x.loc[('Treatment courses, n (%)', '')] = ''
     t_x.at[('Treatment courses, n (%)', ''), 'p-value'] = fmt_p(p_course)
+    t_x.at[('Treatment courses, n (%)', ''), 'Test'] = test_course
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Total'] = fmt_iqr(days_t)
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Monotherapy'] = fmt_iqr(days_m)
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Combination'] = fmt_iqr(days_c)
@@ -485,9 +512,11 @@ def build_table_x():
     t_x.at[('Duration', 'Duration range, days'), 'Monotherapy'] = fmt_range(days_m)
     t_x.at[('Duration', 'Duration range, days'), 'Combination'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
-    p_dur = cont_test(days_m.dropna(), days_c.dropna())
+    p_dur, test_dur = cont_test(days_m.dropna(), days_c.dropna())
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Test'] = test_dur
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Duration range, days'), 'Test'] = test_dur
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
@@ -525,15 +554,17 @@ def build_table_x_raw():
         'Monotherapy',
         'Combination',
         'p-value',
+        'Test',
     ])
 
     def add(row, st, sm, sc):
-        nt, nm, nc, p = rate_calc(st, sm, sc)
+        nt, nm, nc, p, test = rate_calc(st, sm, sc)
         raw.at[row, 'Total'] = nt
         raw.at[row, 'Monotherapy'] = nm
         raw.at[row, 'Combination'] = nc
         if nt:
             raw.at[row, 'p-value'] = p
+            raw.at[row, 'Test'] = test
 
     labels = [
         'Standard 5-day Paxlovid',
@@ -558,12 +589,14 @@ def build_table_x_raw():
         MONO[COL_THERAPY].str.startswith('c', na=False),
         COMBO[COL_THERAPY].str.startswith('c', na=False),
     )
-    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'p-value'] = chi_or_fisher(
+    p_last, test_last = chi_or_fisher(
         len(COMBO),
         0,
         0,
         len(MONO),
     )
+    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'p-value'] = p_last
+    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'Test'] = test_last
     raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Total'] = int(mono_flag_t.sum())
     raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Monotherapy'] = len(MONO)
     raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Combination'] = 0
@@ -590,9 +623,13 @@ def build_table_x_raw():
     raw.at[('Duration, days', 'Max'), 'Total'] = days_t.max()
     raw.at[('Duration, days', 'Max'), 'Monotherapy'] = days_m.max()
     raw.at[('Duration, days', 'Max'), 'Combination'] = days_c.max()
-    raw.at[('Duration, days', 'Median'), 'p-value'] = cont_test(days_m.dropna(), days_c.dropna())
-    raw.at[('Duration, days', 'Min'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
-    raw.at[('Duration, days', 'Max'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
+    p_dur, test_dur = cont_test(days_m.dropna(), days_c.dropna())
+    raw.at[('Duration, days', 'Median'), 'p-value'] = p_dur
+    raw.at[('Duration, days', 'Median'), 'Test'] = test_dur
+    raw.at[('Duration, days', 'Min'), 'p-value'] = p_dur
+    raw.at[('Duration, days', 'Min'), 'Test'] = test_dur
+    raw.at[('Duration, days', 'Max'), 'p-value'] = p_dur
+    raw.at[('Duration, days', 'Max'), 'Test'] = test_dur
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
@@ -659,43 +696,47 @@ columns = [
     'Monotherapy',
     'Combination',
     'p-value',
+    'Test',
 ]
 
 table_y = pd.DataFrame(index=index, columns=columns)
 table_y_raw = pd.DataFrame(index=index, columns=columns)
-table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
+table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None, None]
 
 
 def add_rate(row, ft, fm, fc):
-    nt, nm, nc, p = fill_rate(table_y, row, ft, fm, fc)
+    nt, nm, nc, p, test = fill_rate(table_y, row, ft, fm, fc)
     table_y_raw.at[row, 'Total'] = nt
     table_y_raw.at[row, 'Monotherapy'] = nm
     table_y_raw.at[row, 'Combination'] = nc
     table_y_raw.at[row, 'p-value'] = p
+    table_y_raw.at[row, 'Test'] = test
 
 
 def add_median_iqr(row, vt, vm, vc):
-    vt, vm, vc, p = fill_median_iqr(table_y, row, vt, vm, vc)
+    vt, vm, vc, p, test = fill_median_iqr(table_y, row, vt, vm, vc)
     table_y_raw.at[row, 'Total'] = vt.median()
     table_y_raw.at[row, 'Monotherapy'] = vm.median()
     table_y_raw.at[row, 'Combination'] = vc.median()
     table_y_raw.at[row, 'p-value'] = p
+    table_y_raw.at[row, 'Test'] = test
 
 
 def add_mean_range(row, vt, vm, vc):
-    vt, vm, vc, p = fill_mean_range(table_y, row, vt, vm, vc)
+    vt, vm, vc, p, test = fill_mean_range(table_y, row, vt, vm, vc)
     table_y_raw.at[row, 'Total'] = vt.mean()
     table_y_raw.at[row, 'Monotherapy'] = vm.mean()
     table_y_raw.at[row, 'Combination'] = vc.mean()
     table_y_raw.at[row, 'p-value'] = p
+    table_y_raw.at[row, 'Test'] = test
 
 
 def build_table_y():
     table_y.loc[:] = None
     table_y_raw.loc[:] = None
-    table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-    table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+    table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
+    table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None, None]
     add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
     add_rate(('Female sex, n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
     table_y.loc[('Underlying conditions, n (%)', '')] = ''
@@ -851,10 +892,11 @@ columns = [
     'Monotherapy',
     'Combination',
     'p-value',
+    'Test',
 ]
 
 table_z = pd.DataFrame(index=index, columns=columns)
-table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
 
 
 def add_rate(row, ft, fm, fc):
@@ -871,7 +913,7 @@ def add_range(row, vt, vm, vc):
 
 def build_table_z():
     table_z.loc[:] = None
-    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
     table_z.loc[('Haematological malignancy, n (%)', '')] = ''
     table_z.loc[('Autoimmune disease, n (%)', '')] = ''
     table_z.loc[('Transplantation, n (%)', '')] = ''

@@ -49,8 +49,9 @@ def build_table_x():
         'Monotherapy',
         'Combination',
         'p-value',
+        'Test',
     ])
-    t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
 
     def add_rate(row, st, sm, sc):
         fill_rate(t_x, row, st, sm, sc, blank=st.sum() == 0)
@@ -82,15 +83,18 @@ def build_table_x():
     t_x.at[idx, 'Total'] = fmt_pct(int(com_flag_t.sum()), len(TOTAL))
     t_x.at[idx, 'Monotherapy'] = fmt_pct(0, len(MONO))
     t_x.at[idx, 'Combination'] = fmt_pct(len(COMBO), len(COMBO))
-    p_last = chi_or_fisher(len(COMBO), 0, 0, len(MONO))
+    p_last, test_last = chi_or_fisher(len(COMBO), 0, 0, len(MONO))
     t_x.at[idx, 'p-value'] = ''
+    t_x.at[idx, 'Test'] = ''
     idx = ('Last line therapy\u00b2, n (%)', 'Monotherapy')
     t_x.at[idx, 'Total'] = fmt_pct(int(mono_flag_t.sum()), len(TOTAL))
     t_x.at[idx, 'Monotherapy'] = fmt_pct(len(MONO), len(MONO))
     t_x.at[idx, 'Combination'] = fmt_pct(0, len(COMBO))
     t_x.at[idx, 'p-value'] = ''
+    t_x.at[idx, 'Test'] = ''
     t_x.loc[('Last line therapy\u00b2, n (%)', '')] = ''
     t_x.at[('Last line therapy\u00b2, n (%)', ''), 'p-value'] = fmt_p(p_last)
+    t_x.at[('Last line therapy\u00b2, n (%)', ''), 'Test'] = test_last
     single_t = courses_t == 1
     multi_t = courses_t > 1
     single_m = courses_m == 1
@@ -105,11 +109,19 @@ def build_table_x():
     t_x.at[row, 'Total'] = fmt_pct(int(multi_t.sum()), len(TOTAL))
     t_x.at[row, 'Monotherapy'] = fmt_pct(int(multi_m.sum()), len(MONO))
     t_x.at[row, 'Combination'] = fmt_pct(int(multi_c.sum()), len(COMBO))
-    p_course = chi_or_fisher(int(single_c.sum()), int(multi_c.sum()), int(single_m.sum()), int(multi_m.sum()))
+    p_course, test_course = chi_or_fisher(
+        int(single_c.sum()),
+        int(multi_c.sum()),
+        int(single_m.sum()),
+        int(multi_m.sum()),
+    )
     t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'p-value'] = ''
+    t_x.at[('Treatment courses, n (%)', 'Single prolonged course'), 'Test'] = ''
     t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'p-value'] = ''
+    t_x.at[('Treatment courses, n (%)', 'Multiple courses'), 'Test'] = ''
     t_x.loc[('Treatment courses, n (%)', '')] = ''
     t_x.at[('Treatment courses, n (%)', ''), 'p-value'] = fmt_p(p_course)
+    t_x.at[('Treatment courses, n (%)', ''), 'Test'] = test_course
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Total'] = fmt_iqr(days_t)
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Monotherapy'] = fmt_iqr(days_m)
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'Combination'] = fmt_iqr(days_c)
@@ -117,9 +129,11 @@ def build_table_x():
     t_x.at[('Duration', 'Duration range, days'), 'Monotherapy'] = fmt_range(days_m)
     t_x.at[('Duration', 'Duration range, days'), 'Combination'] = fmt_range(days_c)
     t_x.loc[('Duration', '')] = ''
-    p_dur = cont_test(days_m.dropna(), days_c.dropna())
+    p_dur, test_dur = cont_test(days_m.dropna(), days_c.dropna())
     t_x.at[('Duration', 'Median duration, days (IQR)'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Median duration, days (IQR)'), 'Test'] = test_dur
     t_x.at[('Duration', 'Duration range, days'), 'p-value'] = fmt_p(p_dur)
+    t_x.at[('Duration', 'Duration range, days'), 'Test'] = test_dur
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
@@ -157,15 +171,17 @@ def build_table_x_raw():
         'Monotherapy',
         'Combination',
         'p-value',
+        'Test',
     ])
 
     def add(row, st, sm, sc):
-        nt, nm, nc, p = rate_calc(st, sm, sc)
+        nt, nm, nc, p, test = rate_calc(st, sm, sc)
         raw.at[row, 'Total'] = nt
         raw.at[row, 'Monotherapy'] = nm
         raw.at[row, 'Combination'] = nc
         if nt:
             raw.at[row, 'p-value'] = p
+            raw.at[row, 'Test'] = test
 
     labels = [
         'Standard 5-day Paxlovid',
@@ -190,12 +206,14 @@ def build_table_x_raw():
         MONO[COL_THERAPY].str.startswith('c', na=False),
         COMBO[COL_THERAPY].str.startswith('c', na=False),
     )
-    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'p-value'] = chi_or_fisher(
+    p_last, test_last = chi_or_fisher(
         len(COMBO),
         0,
         0,
         len(MONO),
     )
+    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'p-value'] = p_last
+    raw.at[('Last line therapy\u00b2, n', 'Combination therapy'), 'Test'] = test_last
     raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Total'] = int(mono_flag_t.sum())
     raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Monotherapy'] = len(MONO)
     raw.at[('Last line therapy\u00b2, n', 'Monotherapy'), 'Combination'] = 0
@@ -222,9 +240,13 @@ def build_table_x_raw():
     raw.at[('Duration, days', 'Max'), 'Total'] = days_t.max()
     raw.at[('Duration, days', 'Max'), 'Monotherapy'] = days_m.max()
     raw.at[('Duration, days', 'Max'), 'Combination'] = days_c.max()
-    raw.at[('Duration, days', 'Median'), 'p-value'] = cont_test(days_m.dropna(), days_c.dropna())
-    raw.at[('Duration, days', 'Min'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
-    raw.at[('Duration, days', 'Max'), 'p-value'] = raw.at[('Duration, days', 'Median'), 'p-value']
+    p_dur, test_dur = cont_test(days_m.dropna(), days_c.dropna())
+    raw.at[('Duration, days', 'Median'), 'p-value'] = p_dur
+    raw.at[('Duration, days', 'Median'), 'Test'] = test_dur
+    raw.at[('Duration, days', 'Min'), 'p-value'] = p_dur
+    raw.at[('Duration, days', 'Min'), 'Test'] = test_dur
+    raw.at[('Duration, days', 'Max'), 'p-value'] = p_dur
+    raw.at[('Duration, days', 'Max'), 'Test'] = test_dur
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '

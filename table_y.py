@@ -38,43 +38,47 @@ columns = [
     'Monotherapy',
     'Combination',
     'p-value',
+    'Test',
 ]
 
 table_y = pd.DataFrame(index=index, columns=columns)
 table_y_raw = pd.DataFrame(index=index, columns=columns)
-table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
+table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None, None]
 
 
 def add_rate(row, ft, fm, fc):
-    nt, nm, nc, p = fill_rate(table_y, row, ft, fm, fc)
+    nt, nm, nc, p, test = fill_rate(table_y, row, ft, fm, fc)
     table_y_raw.at[row, 'Total'] = nt
     table_y_raw.at[row, 'Monotherapy'] = nm
     table_y_raw.at[row, 'Combination'] = nc
     table_y_raw.at[row, 'p-value'] = p
+    table_y_raw.at[row, 'Test'] = test
 
 
 def add_median_iqr(row, vt, vm, vc):
-    vt, vm, vc, p = fill_median_iqr(table_y, row, vt, vm, vc)
+    vt, vm, vc, p, test = fill_median_iqr(table_y, row, vt, vm, vc)
     table_y_raw.at[row, 'Total'] = vt.median()
     table_y_raw.at[row, 'Monotherapy'] = vm.median()
     table_y_raw.at[row, 'Combination'] = vc.median()
     table_y_raw.at[row, 'p-value'] = p
+    table_y_raw.at[row, 'Test'] = test
 
 
 def add_mean_range(row, vt, vm, vc):
-    vt, vm, vc, p = fill_mean_range(table_y, row, vt, vm, vc)
+    vt, vm, vc, p, test = fill_mean_range(table_y, row, vt, vm, vc)
     table_y_raw.at[row, 'Total'] = vt.mean()
     table_y_raw.at[row, 'Monotherapy'] = vm.mean()
     table_y_raw.at[row, 'Combination'] = vc.mean()
     table_y_raw.at[row, 'p-value'] = p
+    table_y_raw.at[row, 'Test'] = test
 
 
 def build_table_y():
     table_y.loc[:] = None
     table_y_raw.loc[:] = None
-    table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-    table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+    table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
+    table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None, None]
     add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
     add_rate(('Female sex, n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
     table_y.loc[('Underlying conditions, n (%)', '')] = ''

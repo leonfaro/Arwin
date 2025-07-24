@@ -68,10 +68,11 @@ columns = [
     'Monotherapy',
     'Combination',
     'p-value',
+    'Test',
 ]
 
 table_z = pd.DataFrame(index=index, columns=columns)
-table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
 
 
 def add_rate(row, ft, fm, fc):
@@ -88,7 +89,7 @@ def add_range(row, vt, vm, vc):
 
 def build_table_z():
     table_z.loc[:] = None
-    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '', '']
     table_z.loc[('Haematological malignancy, n (%)', '')] = ''
     table_z.loc[('Autoimmune disease, n (%)', '')] = ''
     table_z.loc[('Transplantation, n (%)', '')] = ''

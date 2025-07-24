@@ -1,21 +1,30 @@
 import os
-import pandas as pd
 from table_x import build_table_x
 from table_y import build_table_y
 from table_z import build_table_z
-import data_preprocessing
+
 
 def section(title, tab):
     df = tab.copy()
     df.insert(0, "subrow", df.index.get_level_values(1))
     df.insert(0, "row", df.index.get_level_values(0))
     df.loc[df["subrow"] != "", "row"] = ""
-    text = "# " + title + "\n\n" + df.reset_index(drop=True).to_markdown(index=False) + "\n\n" + tab.attrs.get("footnote", "") + "\n\n"
+    text = (
+        "# "
+        + title
+        + "\n\n"
+        + df.reset_index(drop=True).to_markdown(index=False)
+        + "\n\n"
+        + tab.attrs.get("footnote", "")
+        + "\n\n"
+    )
     return text
+
 
 def clean(path):
     if os.path.exists(path):
         os.remove(path)
+
 
 def code_without_imports(path):
     lines = open(path).read().splitlines()
