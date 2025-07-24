@@ -364,13 +364,10 @@ def main():
     out_code = "code.md"
     clean(out_code)
     with open(out_code, "w") as f:
-        f.write("## data_preprocessing.py\n\n```python\n")
-        f.write(open("data_preprocessing.py").read())
-        f.write("\n```\n\n")
+        f.write(open("data_preprocessing.py").read().rstrip() + "\n\n")
         for name in ["table_x.py", "table_y.py", "table_z.py", "table_B.py"]:
-            f.write(f"## {name}\n\n```python\n")
             f.write(code_without_imports(name))
-            f.write("\n```\n\n")
+            f.write("\n\n")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,3 @@
-## data_preprocessing.py
-
-```python
 import pandas as pd
 import numpy as np
 import re
@@ -377,11 +374,6 @@ if __name__ == '__main__':
     print(COMBO.shape)
     print(baseline_stats())
 
-```
-
-## table_x.py
-
-```python
     TOTAL,
     MONO,
     COMBO,
@@ -630,11 +622,7 @@ if __name__ == '__main__':
         '2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) '
         'when no subsequent antiviral therapy was administered.'
     )
-```
 
-## table_y.py
-
-```python
     TOTAL,
     MONO,
     COMBO,
@@ -792,11 +780,7 @@ __all__ = [
     'add_median_iqr',
     'add_mean_range',
 ]
-```
 
-## table_z.py
-
-```python
     TOTAL,
     MONO,
     COMBO,
@@ -984,11 +968,7 @@ def build_table_z():
 if __name__ == '__main__':
     print('Table Z')
     print(build_table_z().to_string())
-```
 
-## table_B.py
-
-```python
 COL_ERAD = 'eradication outcome successful\n[yes / no]'
 COL_SURV = 'survival outcome\n[yes / no]'
 COL_AE_YN = 'any adverse events\n[yes / no]'
@@ -1039,5 +1019,4 @@ def build_table_B():
 if __name__ == '__main__':
     print('Table B')
     print(build_table_B().to_string())
-```
 
