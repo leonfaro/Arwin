@@ -34,6 +34,9 @@ def load_sheet(primary, alt):
 TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104').iloc[:104]
 MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
 COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+TOTAL_N = len(TOTAL)
+MONO_N = len(MONO)
+COMBO_N = len(COMBO)
 for _df in (TOTAL, MONO, COMBO):
     if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
         _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
@@ -249,9 +252,9 @@ def vec_calc(vt, vm, vc):
 
 def fill_rate(tab, row, ft, fm, fc, blank=False):
     nt, nm, nc, p = rate_calc(ft, fm, fc)
-    tab.at[row, 'Total'] = fmt_pct(nt, len(ft))
-    tab.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
-    tab.at[row, 'Combination'] = fmt_pct(nc, len(fc))
+    tab.at[row, 'Total'] = fmt_pct(nt, TOTAL_N)
+    tab.at[row, 'Monotherapy'] = fmt_pct(nm, MONO_N)
+    tab.at[row, 'Combination'] = fmt_pct(nc, COMBO_N)
     tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
     return nt, nm, nc, p
 
