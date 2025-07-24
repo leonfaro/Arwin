@@ -10,14 +10,14 @@ def flag(series, val):
     return series.astype(str).str.lower().str.startswith(val)
 
 
-index = pd.MultiIndex.from_tuples(
+index = pd.Index(
     [
-        ('SARS-CoV-2 Persistence\u00b9, n (%)', ''),
-        ('All-cause mortality\u00b2, n (%)', ''),
-        ('SARS-CoV-2-related mortality\u00b3, n (%)', ''),
-        ('AE\u2074, n (%)', ''),
+        'SARS-CoV-2 Persistence\u00b9, n (%)',
+        'All-cause mortality\u00b2, n (%)',
+        'SARS-CoV-2-related mortality\u00b3, n (%)',
+        'AE\u2074, n (%)',
     ],
-    names=['row', 'subrow'],
+    name='Outcomes',
 )
 
 
@@ -49,5 +49,10 @@ def build_table_B():
 
 
 if __name__ == '__main__':
-    print('Table B')
-    print(build_table_B().to_string())
+    tab = build_table_B()
+    print('Table B. Outcomes in all cohorts.')
+    print(tab.to_string())
+    foot = tab.attrs['footnote']
+    for line in foot.split('\n'):
+        if line:
+            print(line)
