@@ -335,6 +335,7 @@ def section(title, tab, tests, subrows=True):
         df["test"] = [tests.get(idx, "") for idx in df.index]
     body = df.reset_index(drop=True).to_markdown(index=False)
     foot = tab.attrs.get("footnote", "").strip()
+    foot = re.sub(r"\s*(?=Abbreviations:)", "\n", foot)
     foot = re.sub(r"\s*(?=\d+:)", "\n", foot)
     foot = "\n".join(s.strip() for s in foot.splitlines() if s.strip())
     text = "# " + title + "\n\n" + body + "\n\n" + foot + "\n\n"
