@@ -1,3 +1,13 @@
+# Dataset overview
+
+The Excel file `data characteristics v9, clean.xlsx` contains three sheets:
+
+| sheet | n |
+|---|---|
+| primary cohort, clean | 161 |
+| subgroup mono n=33 | 33 |
+| subgroup combo, n=57 | 57 |
+
 # EDA for primary cohort, clean sheet
 ## first author (year)
 
