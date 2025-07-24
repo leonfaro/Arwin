@@ -4,11 +4,11 @@ from data_preprocessing import (
     MONO,
     COMBO,
     fmt_pct,
-    chi_or_fisher,
     fmt_p,
     fmt_iqr,
     fmt_range,
-    cont_test,
+    rate_calc,
+    vec_calc,
 )
 
 index = pd.MultiIndex.from_tuples(
@@ -49,18 +49,11 @@ table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
 
 
-def add_rate(row, flag_total, flag_mono, flag_combo):
-    nt = int(flag_total.sum())
-    nm = int(flag_mono.sum())
-    nc = int(flag_combo.sum())
-    table_y.at[row, 'Total'] = fmt_pct(nt, len(flag_total))
-    table_y.at[row, 'Monotherapy'] = fmt_pct(nm, len(flag_mono))
-    table_y.at[row, 'Combination'] = fmt_pct(nc, len(flag_combo))
-    a11 = nc
-    a12 = len(flag_combo) - nc
-    a21 = nm
-    a22 = len(flag_mono) - nm
-    p = chi_or_fisher(a11, a12, a21, a22)
+def add_rate(row, ft, fm, fc):
+    nt, nm, nc, p = rate_calc(ft, fm, fc)
+    table_y.at[row, 'Total'] = fmt_pct(nt, len(ft))
+    table_y.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
+    table_y.at[row, 'Combination'] = fmt_pct(nc, len(fc))
     table_y.at[row, 'p-value'] = fmt_p(p)
     table_y_raw.at[row, 'Total'] = nt
     table_y_raw.at[row, 'Monotherapy'] = nm
@@ -68,14 +61,11 @@ def add_rate(row, flag_total, flag_mono, flag_combo):
     table_y_raw.at[row, 'p-value'] = p
 
 
-def add_median_iqr(row, vec_total, vec_mono, vec_combo):
-    vt = pd.to_numeric(vec_total, errors='coerce').dropna()
-    vm = pd.to_numeric(vec_mono, errors='coerce').dropna()
-    vc = pd.to_numeric(vec_combo, errors='coerce').dropna()
+def add_median_iqr(row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
     table_y.at[row, 'Total'] = fmt_iqr(vt)
     table_y.at[row, 'Monotherapy'] = fmt_iqr(vm)
     table_y.at[row, 'Combination'] = fmt_iqr(vc)
-    p = cont_test(vm, vc)
     table_y.at[row, 'p-value'] = fmt_p(p)
     table_y_raw.at[row, 'Total'] = vt.median()
     table_y_raw.at[row, 'Monotherapy'] = vm.median()
@@ -83,14 +73,11 @@ def add_median_iqr(row, vec_total, vec_mono, vec_combo):
     table_y_raw.at[row, 'p-value'] = p
 
 
-def add_mean_range(row, vec_total, vec_mono, vec_combo):
-    vt = pd.to_numeric(vec_total, errors='coerce').dropna()
-    vm = pd.to_numeric(vec_mono, errors='coerce').dropna()
-    vc = pd.to_numeric(vec_combo, errors='coerce').dropna()
+def add_mean_range(row, vt, vm, vc):
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
     table_y.at[row, 'Total'] = f"{vt.mean():.1f} ({fmt_range(vt)})"
     table_y.at[row, 'Monotherapy'] = f"{vm.mean():.1f} ({fmt_range(vm)})"
     table_y.at[row, 'Combination'] = f"{vc.mean():.1f} ({fmt_range(vc)})"
-    p = cont_test(vm, vc)
     table_y.at[row, 'p-value'] = fmt_p(p)
     table_y_raw.at[row, 'Total'] = vt.mean()
     table_y_raw.at[row, 'Monotherapy'] = vm.mean()
