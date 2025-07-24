@@ -6,6 +6,7 @@ from table_B import build_table_B, COL_ERAD, COL_SURV, COL_AE_YN
 import data_preprocessing
 import pandas as pd
 from scipy.stats import chi2_contingency, shapiro
+import re
 
 
 def chi_or_fisher_test(a11, a12, a21, a22):
@@ -327,7 +328,10 @@ def section(title, tab, tests):
     df.loc[df["subrow"] != "", "row"] = ""
     df["test"] = [tests.get(idx, "") for idx in tab.index]
     body = df.reset_index(drop=True).to_markdown(index=False)
-    text = "# " + title + "\n\n" + body + "\n\n" + tab.attrs.get("footnote", "") + "\n\n"
+    foot = tab.attrs.get("footnote", "").strip()
+    foot = re.sub(r"\s*(?=\d+:)", "\n", foot)
+    foot = "\n".join(s.strip() for s in foot.splitlines() if s.strip())
+    text = "# " + title + "\n\n" + body + "\n\n" + foot + "\n\n"
     return text
 
 
