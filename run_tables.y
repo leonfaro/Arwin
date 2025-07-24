@@ -6,7 +6,10 @@ from table_z import build_table_z
 import data_preprocessing
 
 def section(title, tab):
-    text = f"# {title}\n\n" + tab.to_markdown() + "\n\n" + tab.attrs.get("footnote", "") + "\n\n"
+    df = tab.copy()
+    df.insert(0, "subrow", df.index.get_level_values(1))
+    df.insert(0, "row", df.index.get_level_values(0))
+    text = "# " + title + "\n\n" + df.reset_index(drop=True).to_markdown(index=False) + "\n\n" + tab.attrs.get("footnote", "") + "\n\n"
     return text
 
 def clean(path):
