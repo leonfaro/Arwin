@@ -152,23 +152,23 @@ def auto_subtype(x):
         return 'CREST'
     if 'ms' in s and 'mcl' not in s:
         return 'MS'
-    if 'systemic sclerosis' in s:
-        return 'Systemic sclerosis'
+    if 'systemic sclerosis' in s or re.search(r'\bssc\b', s):
+        return 'SSc'
     if 'ulcerosa' in s:
         return 'Colitis ulcerosa'
     if 'glomerulonephritis' in s:
         return 'Glomerulonephritis'
     if 'nmda' in s:
-        return 'NMDA-receptor encephalitis'
+        return 'NMDA-encephalitis'
     return None
 
 
 def transp_subtype(x):
     s = str(x).lower()
-    if 'lung' in s and 'tx' in s:
-        return 'Lung-TX'
-    if 'kidney' in s and 'tx' in s:
-        return 'Kidney-TX'
+    if re.search(r'\blt\b', s) or ('lung' in s and 'tx' in s):
+        return 'LT'
+    if re.search(r'\bkt\b', s) or ('kidney' in s and 'tx' in s):
+        return 'KT'
     return None
 
 
@@ -825,13 +825,13 @@ index = pd.MultiIndex.from_tuples(
         ('Autoimmune disease, n (%)', 'RA'),
         ('Autoimmune disease, n (%)', 'CREST'),
         ('Autoimmune disease, n (%)', 'MS'),
-        ('Autoimmune disease, n (%)', 'Systemic sclerosis'),
+        ('Autoimmune disease, n (%)', 'SSc'),
         ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
         ('Autoimmune disease, n (%)', 'Glomerulonephritis'),
-        ('Autoimmune disease, n (%)', 'NMDA-receptor encephalitis'),
+        ('Autoimmune disease, n (%)', 'NMDA-encephalitis'),
         ('Transplantation, n (%)', ''),
-        ('Transplantation, n (%)', 'Lung-TX'),
-        ('Transplantation, n (%)', 'Kidney-TX'),
+        ('Transplantation, n (%)', 'LT'),
+        ('Transplantation, n (%)', 'KT'),
         ('Disease group, n (%)', ''),
         ('Disease group, n (%)', 'Haematological malignancy'),
         ('Disease group, n (%)', 'Autoimmune disease'),
@@ -908,10 +908,10 @@ def build_table_z():
         'RA',
         'CREST',
         'MS',
-        'Systemic sclerosis',
+        'SSc',
         'Colitis ulcerosa',
         'Glomerulonephritis',
-        'NMDA-receptor encephalitis',
+        'NMDA-encephalitis',
     ]
     for lab in labs:
         add_rate(
@@ -920,7 +920,7 @@ def build_table_z():
             MONO['auto'] == lab,
             COMBO['auto'] == lab,
         )
-    for lab in ['Lung-TX', 'Kidney-TX']:
+    for lab in ['LT', 'KT']:
         add_rate(
             ('Transplantation, n (%)', lab),
             TOTAL['trans'] == lab,
