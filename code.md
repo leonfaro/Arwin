@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-FILE_PATH = 'data characteristics v9, clean.xlsx'
+FILE_PATH = 'data characteristics v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -37,6 +37,16 @@ def load_sheet(primary, alt):
 TOTAL = load_sheet('primary cohort, clean', 'primary cohort, n=104').iloc[:104]
 MONO = load_sheet('subgroup mono', 'subgroup mono n=33')
 COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
+TOTAL_N = len(TOTAL)
+MONO_N = len(MONO)
+COMBO_N = len(COMBO)
+ABBREV_DF = pd.read_excel(
+    FILE_PATH,
+    sheet_name='primary cohort, n=104',
+    usecols='H:I',
+    header=106,
+).dropna(how='all')
+ABBREV_DF.columns = ['Abbreviation', 'Full Form']
 for _df in (TOTAL, MONO, COMBO):
     if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
         _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
@@ -252,9 +262,9 @@ def vec_calc(vt, vm, vc):
 
 def fill_rate(tab, row, ft, fm, fc, blank=False):
     nt, nm, nc, p = rate_calc(ft, fm, fc)
-    tab.at[row, 'Total'] = fmt_pct(nt, len(ft))
-    tab.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
-    tab.at[row, 'Combination'] = fmt_pct(nc, len(fc))
+    tab.at[row, 'Total'] = fmt_pct(nt, TOTAL_N)
+    tab.at[row, 'Monotherapy'] = fmt_pct(nm, MONO_N)
+    tab.at[row, 'Combination'] = fmt_pct(nc, COMBO_N)
     tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
     return nt, nm, nc, p
 
@@ -355,6 +365,10 @@ def baseline_stats() -> pd.DataFrame:
             fmt_p(p),
         ]
     return df
+
+
+def export_abbreviations_md(path: str) -> None:
+    ABBREV_DF.to_markdown(path, index=False)
 
 
 if __name__ == '__main__':
