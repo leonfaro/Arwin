@@ -19,9 +19,9 @@ TOTAL = data_preprocessing.TOTAL
 def test_columns():
     tab = build_table_x()
     assert list(tab.columns) == [
-        'Primary Cohort (n=104)',
-        'Subgroup monotherapy (n=33)',
-        'Subgroup combination (n=57)',
+        'Total',
+        'Monotherapy',
+        'Combination',
         'p-value',
     ]
 
