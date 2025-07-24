@@ -232,6 +232,21 @@ def fmt_range(series: pd.Series) -> str:
     return f'{int(series.min())}-{int(series.max())}'
 
 
+def rate_calc(ft, fm, fc):
+    nt = int(ft.sum())
+    nm = int(fm.sum())
+    nc = int(fc.sum())
+    p = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
+    return nt, nm, nc, p
+
+
+def vec_calc(vt, vm, vc):
+    vt = pd.to_numeric(vt, errors='coerce').dropna()
+    vm = pd.to_numeric(vm, errors='coerce').dropna()
+    vc = pd.to_numeric(vc, errors='coerce').dropna()
+    return vt, vm, vc, cont_test(vm, vc)
+
+
 def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['age_vec'] = pd.to_numeric(df[COL_AGE], errors='coerce')
     df['flag_female'] = df[COL_SEX].astype(str).str.lower().str.startswith('f')

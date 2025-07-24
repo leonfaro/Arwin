@@ -6,9 +6,9 @@ from data_preprocessing import (
     fmt_pct,
     fmt_iqr,
     fmt_range,
-    chi_or_fisher,
     fmt_p,
-    cont_test,
+    rate_calc,
+    vec_calc,
 )
 
 index = pd.MultiIndex.from_tuples(
@@ -78,34 +78,27 @@ table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
 
 def add_rate(row, ft, fm, fc):
-    nt = int(ft.sum())
-    nm = int(fm.sum())
-    nc = int(fc.sum())
+    nt, nm, nc, p = rate_calc(ft, fm, fc)
     table_z.at[row, 'Total'] = fmt_pct(nt, len(ft))
     table_z.at[row, 'Monotherapy'] = fmt_pct(nm, len(fm))
     table_z.at[row, 'Combination'] = fmt_pct(nc, len(fc))
-    p = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
     table_z.at[row, 'p-value'] = fmt_p(p)
 
 
 def add_median_iqr(row, vt, vm, vc):
-    vt = pd.to_numeric(vt, errors='coerce').dropna()
-    vm = pd.to_numeric(vm, errors='coerce').dropna()
-    vc = pd.to_numeric(vc, errors='coerce').dropna()
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
     table_z.at[row, 'Total'] = fmt_iqr(vt)
     table_z.at[row, 'Monotherapy'] = fmt_iqr(vm)
     table_z.at[row, 'Combination'] = fmt_iqr(vc)
-    table_z.at[row, 'p-value'] = fmt_p(cont_test(vm, vc))
+    table_z.at[row, 'p-value'] = fmt_p(p)
 
 
 def add_range(row, vt, vm, vc):
-    vt = pd.to_numeric(vt, errors='coerce').dropna()
-    vm = pd.to_numeric(vm, errors='coerce').dropna()
-    vc = pd.to_numeric(vc, errors='coerce').dropna()
+    vt, vm, vc, p = vec_calc(vt, vm, vc)
     table_z.at[row, 'Total'] = fmt_range(vt)
     table_z.at[row, 'Monotherapy'] = fmt_range(vm)
     table_z.at[row, 'Combination'] = fmt_range(vc)
-    table_z.at[row, 'p-value'] = fmt_p(cont_test(vm, vc))
+    table_z.at[row, 'p-value'] = fmt_p(p)
 
 
 def build_table_z():

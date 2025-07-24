@@ -9,12 +9,13 @@ from data_preprocessing import (
 
     parse_ext,
     fmt_pct,
-    chi_or_fisher,
     fmt_p,
     fmt_iqr,
 
     fmt_range,
     cont_test,
+    rate_calc,
+    chi_or_fisher,
 )
 
 
@@ -51,16 +52,12 @@ def build_table_x():
     ])
     t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
-    def add_rate(row, ser_total, ser_mono, ser_combo):
-        t_x.at[row, 'Total'] = fmt_pct(int(ser_total.sum()), len(TOTAL))
-        t_x.at[row, 'Monotherapy'] = fmt_pct(int(ser_mono.sum()), len(MONO))
-        t_x.at[row, 'Combination'] = fmt_pct(int(ser_combo.sum()), len(COMBO))
-        if ser_total.sum():
-            a11 = int(ser_combo.sum())
-            a12 = len(ser_combo) - a11
-            a21 = int(ser_mono.sum())
-            a22 = len(ser_mono) - a21
-            p = chi_or_fisher(a11, a12, a21, a22)
+    def add_rate(row, st, sm, sc):
+        nt, nm, nc, p = rate_calc(st, sm, sc)
+        t_x.at[row, 'Total'] = fmt_pct(nt, len(TOTAL))
+        t_x.at[row, 'Monotherapy'] = fmt_pct(nm, len(MONO))
+        t_x.at[row, 'Combination'] = fmt_pct(nc, len(COMBO))
+        if st.sum():
             t_x.at[row, 'p-value'] = fmt_p(p)
         else:
             t_x.at[row, 'p-value'] = ''
@@ -169,19 +166,13 @@ def build_table_x_raw():
         'p-value',
     ])
 
-    def add(row, ser_total, ser_mono, ser_combo):
-        nt = int(ser_total.sum())
-        nm = int(ser_mono.sum())
-        nc = int(ser_combo.sum())
+    def add(row, st, sm, sc):
+        nt, nm, nc, p = rate_calc(st, sm, sc)
         raw.at[row, 'Total'] = nt
         raw.at[row, 'Monotherapy'] = nm
         raw.at[row, 'Combination'] = nc
         if nt:
-            a11 = nc
-            a12 = len(ser_combo) - nc
-            a21 = nm
-            a22 = len(ser_mono) - nm
-            raw.at[row, 'p-value'] = chi_or_fisher(a11, a12, a21, a22)
+            raw.at[row, 'p-value'] = p
 
     labels = [
         'Standard 5-day Paxlovid',
