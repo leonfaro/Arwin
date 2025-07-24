@@ -27,7 +27,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Glucocorticoid use, n (%)', ''),
         ('SARS-CoV-2 vaccination, n (%)', ''),
-        ('Vaccination doses, n (range)', ''),
+        ('Mean Vaccination doses, n (range)', ''),
         ('Thoracic CT changes, n (%)', ''),
         ('Treatment setting\u00b9, n (%)', ''),
         ('Treatment setting\u00b9, n (%)', 'Hospital'),
@@ -84,18 +84,18 @@ def add_median_iqr(row, vec_total, vec_mono, vec_combo):
     table_y_raw.at[row, 'p-value'] = p
 
 
-def add_range(row, vec_total, vec_mono, vec_combo):
+def add_mean_range(row, vec_total, vec_mono, vec_combo):
     vt = pd.to_numeric(vec_total, errors='coerce').dropna()
     vm = pd.to_numeric(vec_mono, errors='coerce').dropna()
     vc = pd.to_numeric(vec_combo, errors='coerce').dropna()
-    table_y.at[row, 'Primary Cohort (n=104)'] = f"{len(vt)} ({fmt_range(vt)})"
-    table_y.at[row, 'Subgroup monotherapy (n=33)'] = f"{len(vm)} ({fmt_range(vm)})"
-    table_y.at[row, 'Subgroup combination (n=57)'] = f"{len(vc)} ({fmt_range(vc)})"
+    table_y.at[row, 'Primary Cohort (n=104)'] = f"{vt.mean():.1f} ({fmt_range(vt)})"
+    table_y.at[row, 'Subgroup monotherapy (n=33)'] = f"{vm.mean():.1f} ({fmt_range(vm)})"
+    table_y.at[row, 'Subgroup combination (n=57)'] = f"{vc.mean():.1f} ({fmt_range(vc)})"
     p = cont_test(vm, vc)
     table_y.at[row, 'p-value'] = fmt_p(p)
-    table_y_raw.at[row, 'Primary Cohort'] = len(vt)
-    table_y_raw.at[row, 'Subgroup monotherapy'] = len(vm)
-    table_y_raw.at[row, 'Subgroup combination'] = len(vc)
+    table_y_raw.at[row, 'Primary Cohort'] = vt.mean()
+    table_y_raw.at[row, 'Subgroup monotherapy'] = vm.mean()
+    table_y_raw.at[row, 'Subgroup combination'] = vc.mean()
     table_y_raw.at[row, 'p-value'] = p
 
 
@@ -125,7 +125,7 @@ def build_table_y():
         add_rate(('Immunosuppressive treatment, n (%)', lbl), TOTAL_104[col], MONO[col], COMBO[col])
     add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
     add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
-    add_range(('Vaccination doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
+    add_mean_range(('Mean Vaccination doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
     add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
     table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
@@ -176,5 +176,5 @@ __all__ = [
     'build_table_y_raw',
     'add_rate',
     'add_median_iqr',
-    'add_range',
+    'add_mean_range',
 ]
