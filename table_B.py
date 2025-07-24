@@ -10,14 +10,14 @@ def flag(series, val):
     return series.astype(str).str.lower().str.startswith(val)
 
 
-index = pd.Index(
+index = pd.MultiIndex.from_tuples(
     [
-        'SARS-CoV-2 Persistence\u00b9, n (%)',
-        'All-cause mortality\u00b2, n (%)',
-        'SARS-CoV-2-related mortality\u00b3, n (%)',
-        'AE\u2074, n (%)',
+        ('SARS-CoV-2 Persistence\u00b9, n (%)', ''),
+        ('All-cause mortality\u00b2, n (%)', ''),
+        ('SARS-CoV-2-related mortality\u00b3, n (%)', ''),
+        ('AE\u2074, n (%)', ''),
     ],
-    name='Outcomes',
+    names=['Outcomes', ''],
 )
 
 

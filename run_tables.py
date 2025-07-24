@@ -320,6 +320,8 @@ def tests_table_B():
 
 def section(title, tab, tests):
     df = tab.copy()
+    if df.index.nlevels == 1:
+        df.index = pd.MultiIndex.from_product([df.index, [""]])
     df.insert(0, "subrow", df.index.get_level_values(1))
     df.insert(0, "row", df.index.get_level_values(0))
     df.loc[df["subrow"] != "", "row"] = ""
