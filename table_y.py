@@ -102,8 +102,8 @@ def add_range(row, vec_total, vec_mono, vec_combo):
 def build_table_y():
     table_y.loc[:] = None
     table_y_raw.loc[:] = None
-    add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
-    add_rate(('Female sex, n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
+    add_median_iqr(('Age, median (IQR)', ''), TOTAL_104['age_vec'], MONO['age_vec'], COMBO['age_vec'])
+    add_rate(('Female sex, n (%)', ''), TOTAL_104['flag_female'], MONO['flag_female'], COMBO['flag_female'])
     table_y.loc[('Underlying conditions, n (%)', '')] = ''
     table_y_raw.loc[('Underlying conditions, n (%)', '')] = None
     pairs = [
@@ -112,7 +112,7 @@ def build_table_y():
         ('Transplantation', 'flag_transpl'),
     ]
     for lbl, col in pairs:
-        add_rate(('Underlying conditions, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
+        add_rate(('Underlying conditions, n (%)', lbl), TOTAL_104[col], MONO[col], COMBO[col])
     table_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
     table_y_raw.loc[('Immunosuppressive treatment, n (%)', '')] = None
     pairs = [
@@ -123,10 +123,10 @@ def build_table_y():
     ]
     for lbl, col in pairs:
         add_rate(('Immunosuppressive treatment, n (%)', lbl), TOTAL_104[col], MONO[col], COMBO[col])
-    add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
-    add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
-    add_range(('Vaccination doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
-    add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
+    add_rate(('Glucocorticoid use, n (%)', ''), TOTAL_104['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
+    add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL_104['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
+    add_range(('Vaccination doses, n (range)', ''), TOTAL_104['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
+    add_rate(('Thoracic CT changes, n (%)', ''), TOTAL_104['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
     table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
     table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
     add_rate(
