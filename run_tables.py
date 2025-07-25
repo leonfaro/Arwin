@@ -193,9 +193,9 @@ def tests_table_c():
         data_preprocessing.COMBO["rep_vec"],
     )
     for lab in [
-        "BA.5-derived Omicron subvariant",
-        "BA.2-derived Omicron subvariant",
-        "BA.1-derived Omicron subvariant",
+        "BA.5",
+        "BA.2",
+        "BA.1",
         "Other",
     ]:
         info[("SARS-CoV-2 genotype, n (%)", lab)] = chi_or_fisher_test(

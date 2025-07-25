@@ -238,11 +238,11 @@ def geno_cat(x):
         or s.startswith('jg')
         or s.startswith('hh')
     ):
-        return 'BA.5-derived Omicron subvariant'
+        return 'BA.5'
     if 'ba.2' in s or s.startswith(('ba2', 'xd', 'xay')):
-        return 'BA.2-derived Omicron subvariant'
+        return 'BA.2'
     if 'ba.1' in s or s.startswith('ba1'):
-        return 'BA.1-derived Omicron subvariant'
+        return 'BA.1'
     if s:
         return 'Other'
     return None
@@ -830,9 +830,9 @@ index = pd.MultiIndex.from_tuples(
         ('Transplantation, n (%)', 'KT'),
         ('Duration of SARS-CoV-2 replication (days), median (IQR)', ''),
         ('SARS-CoV-2 genotype, n (%)', ''),
-        ('SARS-CoV-2 genotype, n (%)', 'BA.5-derived Omicron subvariant'),
-        ('SARS-CoV-2 genotype, n (%)', 'BA.2-derived Omicron subvariant'),
-        ('SARS-CoV-2 genotype, n (%)', 'BA.1-derived Omicron subvariant'),
+        ('SARS-CoV-2 genotype, n (%)', 'BA.5'),
+        ('SARS-CoV-2 genotype, n (%)', 'BA.2'),
+        ('SARS-CoV-2 genotype, n (%)', 'BA.1'),
         ('SARS-CoV-2 genotype, n (%)', 'Other'),
         ('Prolonged viral shedding (\u2265\u202f14\u202fdays), n (%)', ''),
         ('Survival, n (%)', ''),
@@ -912,9 +912,9 @@ def build_table_c():
         COMBO['rep_vec'],
     )
     labs = [
-        'BA.5-derived Omicron subvariant',
-        'BA.2-derived Omicron subvariant',
-        'BA.1-derived Omicron subvariant',
+        'BA.5',
+        'BA.2',
+        'BA.1',
         'Other',
     ]
     for lab in labs:

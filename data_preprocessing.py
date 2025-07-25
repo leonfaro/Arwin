@@ -238,11 +238,11 @@ def geno_cat(x):
         or s.startswith('jg')
         or s.startswith('hh')
     ):
-        return 'BA.5-derived Omicron subvariant'
+        return 'BA.5'
     if 'ba.2' in s or s.startswith(('ba2', 'xd', 'xay')):
-        return 'BA.2-derived Omicron subvariant'
+        return 'BA.2'
     if 'ba.1' in s or s.startswith('ba1'):
-        return 'BA.1-derived Omicron subvariant'
+        return 'BA.1'
     if s:
         return 'Other'
     return None
