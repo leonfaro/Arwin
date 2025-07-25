@@ -209,12 +209,18 @@ def tests_table_c():
             int((data_preprocessing.MONO["group"] == lab).sum()),
             len(data_preprocessing.MONO) - int((data_preprocessing.MONO["group"] == lab).sum()),
         )
-    for lab in ["None", "Anti-CD-20", "CAR-T"]:
-        info[("Immunosuppressive treatment, n (%)", lab)] = chi_or_fisher_test(
-            int((data_preprocessing.COMBO["immu"] == lab).sum()),
-            len(data_preprocessing.COMBO) - int((data_preprocessing.COMBO["immu"] == lab).sum()),
-            int((data_preprocessing.MONO["immu"] == lab).sum()),
-            len(data_preprocessing.MONO) - int((data_preprocessing.MONO["immu"] == lab).sum()),
+    pairs = [
+        ("None", "flag_immuno_none"),
+        ("Anti-CD-20", "flag_cd20"),
+        ("CAR-T", "flag_cart"),
+        ("HSCT", "flag_hsct"),
+    ]
+    for lbl, col in pairs:
+        info[("Immunosuppressive treatment, n (%)", lbl)] = chi_or_fisher_test(
+            int(data_preprocessing.COMBO[col].sum()),
+            len(data_preprocessing.COMBO) - int(data_preprocessing.COMBO[col].sum()),
+            int(data_preprocessing.MONO[col].sum()),
+            len(data_preprocessing.MONO) - int(data_preprocessing.MONO[col].sum()),
         )
     info[("Glucocorticoid use, n (%)", "")] = chi_or_fisher_test(
         int(data_preprocessing.COMBO["flag_gc"].sum()),

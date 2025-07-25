@@ -43,6 +43,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Immunosuppressive treatment, n (%)', 'Anti-CD-20'),
         ('Immunosuppressive treatment, n (%)', 'CAR-T'),
+        ('Immunosuppressive treatment, n (%)', 'HSCT'),
         ('Glucocorticoid use, n (%)', ''),
         ('SARS-CoV-2 vaccination, n (%)', ''),
         ('Number of vaccine doses, n (range)', ''),
@@ -137,13 +138,14 @@ def build_table_c():
             MONO['group'] == lab,
             COMBO['group'] == lab,
         )
-    for lab in ['None', 'Anti-CD-20', 'CAR-T']:
-        add_rate(
-            ('Immunosuppressive treatment, n (%)', lab),
-            TOTAL['immu'] == lab,
-            MONO['immu'] == lab,
-            COMBO['immu'] == lab,
-        )
+    pairs = [
+        ('None', TOTAL['flag_immuno_none'], MONO['flag_immuno_none'], COMBO['flag_immuno_none']),
+        ('Anti-CD-20', TOTAL['flag_cd20'], MONO['flag_cd20'], COMBO['flag_cd20']),
+        ('CAR-T', TOTAL['flag_cart'], MONO['flag_cart'], COMBO['flag_cart']),
+        ('HSCT', TOTAL['flag_hsct'], MONO['flag_hsct'], COMBO['flag_hsct']),
+    ]
+    for lbl, ft, fm, fc in pairs:
+        add_rate(('Immunosuppressive treatment, n (%)', lbl), ft, fm, fc)
     add_rate(('Glucocorticoid use, n (%)', ''), TOTAL['flag_gc'], MONO['flag_gc'], COMBO['flag_gc'])
     add_rate(('SARS-CoV-2 vaccination, n (%)', ''), TOTAL['vacc_yes'], MONO['vacc_yes'], COMBO['vacc_yes'])
     add_range(('Number of vaccine doses, n (range)', ''), TOTAL['dose_vec'], MONO['dose_vec'], COMBO['dose_vec'])
