@@ -276,11 +276,14 @@ def fmt_range(series: pd.Series) -> str:
 
 
 def rate_calc(ft, fm, fc):
+    ft = ft.dropna()
+    fm = fm.dropna()
+    fc = fc.dropna()
     nt = int(ft.sum())
     nm = int(fm.sum())
     nc = int(fc.sum())
     p = chi_or_fisher(nc, len(fc) - nc, nm, len(fm) - nm)
-    return nt, nm, nc, p
+    return nt, nm, nc, len(ft), len(fm), len(fc), p
 
 
 def vec_calc(vt, vm, vc):
@@ -291,10 +294,10 @@ def vec_calc(vt, vm, vc):
 
 
 def fill_rate(tab, row, ft, fm, fc, blank=False):
-    nt, nm, nc, p = rate_calc(ft, fm, fc)
-    tab.at[row, 'Total'] = fmt_pct(nt, TOTAL_N)
-    tab.at[row, 'Monotherapy'] = fmt_pct(nm, MONO_N)
-    tab.at[row, 'Combination'] = fmt_pct(nc, COMBO_N)
+    nt, nm, nc, dt, dm, dc, p = rate_calc(ft, fm, fc)
+    tab.at[row, 'Total'] = fmt_pct(nt, dt)
+    tab.at[row, 'Monotherapy'] = fmt_pct(nm, dm)
+    tab.at[row, 'Combination'] = fmt_pct(nc, dc)
     tab.at[row, 'p-value'] = '' if blank and nt == 0 else fmt_p(p)
     return nt, nm, nc, p
 
