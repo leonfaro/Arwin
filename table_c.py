@@ -70,32 +70,32 @@ columns = [
     'p-value',
 ]
 
-table_z = pd.DataFrame(index=index, columns=columns)
-table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+table_c = pd.DataFrame(index=index, columns=columns)
+table_c.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
 
 def add_rate(row, ft, fm, fc):
-    fill_rate(table_z, row, ft, fm, fc)
+    fill_rate(table_c, row, ft, fm, fc)
 
 
 def add_median_iqr(row, vt, vm, vc):
-    fill_median_iqr(table_z, row, vt, vm, vc)
+    fill_median_iqr(table_c, row, vt, vm, vc)
 
 
 def add_range(row, vt, vm, vc):
-    fill_range(table_z, row, vt, vm, vc)
+    fill_range(table_c, row, vt, vm, vc)
 
 
-def build_table_z():
-    table_z.loc[:] = None
-    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-    table_z.loc[('Haematological malignancy, n (%)', '')] = ''
-    table_z.loc[('Autoimmune disease, n (%)', '')] = ''
-    table_z.loc[('Transplantation, n (%)', '')] = ''
-    table_z.loc[('Disease group, n (%)', '')] = ''
-    table_z.loc[('Immunosuppressive treatment, n (%)', '')] = ''
-    table_z.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
-    table_z.loc[('Adverse events, n (%)', '')] = ''
+def build_table_c():
+    table_c.loc[:] = None
+    table_c.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_c.loc[('Haematological malignancy, n (%)', '')] = ''
+    table_c.loc[('Autoimmune disease, n (%)', '')] = ''
+    table_c.loc[('Transplantation, n (%)', '')] = ''
+    table_c.loc[('Disease group, n (%)', '')] = ''
+    table_c.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    table_c.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
+    table_c.loc[('Adverse events, n (%)', '')] = ''
     add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
     add_rate(('Sex (female), n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
     labs = ['Other', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
@@ -181,9 +181,9 @@ def build_table_z():
     )
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
-    return table_z
+    return table_c
 
 
 if __name__ == '__main__':
-    print('Table Z. Detailed Patient Characteristics.')
-    print(build_table_z().to_string())
+    print('Table C. Detailed Patient Characteristics.')
+    print(build_table_c().to_string())

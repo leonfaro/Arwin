@@ -8,16 +8,16 @@ data_preprocessing = importlib.util.module_from_spec(spec)
 sys.modules['data_preprocessing'] = data_preprocessing
 spec.loader.exec_module(data_preprocessing)
 
-spec = importlib.util.spec_from_file_location('table_x', path / 'table_x.py')
-table_x = importlib.util.module_from_spec(spec)
+spec = importlib.util.spec_from_file_location('table_b', path / 'table_b.py')
+table_b = importlib.util.module_from_spec(spec)
 sys.modules['data_preprocessing'] = data_preprocessing
-spec.loader.exec_module(table_x)
-build_table_x = table_x.build_table_x
-TOTAL = data_preprocessing.TOTAL
+spec.loader.exec_module(table_b)
+
+build_table_b = table_b.build_table_b
 
 
 def test_columns():
-    tab = build_table_x()
+    tab = build_table_b()
     assert list(tab.columns) == [
         'Total',
         'Monotherapy',
@@ -26,6 +26,6 @@ def test_columns():
     ]
 
 
-def test_flag_counts():
-    tab = TOTAL[['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']]
-    assert tab.sum().sum() >= 0
+def test_no_nan():
+    tab = build_table_b()
+    assert tab.isna().sum().sum() == 0
