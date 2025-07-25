@@ -181,13 +181,11 @@ def disease_group(x):
 
 
 def immuno_cat(x):
-    g = group_immuno(x)
-    if g == 'CD20':
+    s = str(x).lower()
+    if 'cd20' in s:
         return 'Anti-CD-20'
-    if g == 'CAR-T':
+    if 'car' in s:
         return 'CAR-T'
-    if g == 'none':
-        return 'None'
     return 'None'
 
 
@@ -306,13 +304,13 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['flag_malign'] = s.str.contains('m')
     df['flag_autoimm'] = s.str.contains('a')
     df['flag_transpl'] = s.str.contains('t')
-    base = df[COL_BASE].map(group_immuno)
-    df['flag_cd20'] = base == 'CD20'
-    df['flag_cart'] = base == 'CAR-T'
-    df['flag_hsct'] = base == 'HSCT'
+    base = df[COL_BASE].astype(str).str.lower()
+    df['flag_cd20'] = base.str.contains('cd20')
+    df['flag_cart'] = base.str.contains('car')
+    df['flag_hsct'] = base.str.contains('hsct')
     df['flag_immuno_none'] = ~(
         df[['flag_cd20', 'flag_cart', 'flag_hsct']].any(axis=1)
-    ) | (base == 'none')
+    ) | base.str.contains('none')
     df['flag_gc'] = df[COL_GC].astype(str).str.lower().str.startswith('y')
     vacc = df[COL_VACC].map(parse_vacc)
     df['vacc_yes'] = vacc.map(lambda x: x[0] == 'Yes')
