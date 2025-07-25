@@ -86,6 +86,35 @@ def cont_test(v1, v2):
     return mannwhitneyu(v1, v2).pvalue
 
 
+def parse_yn(x):
+    s = str(x).lower().strip()
+    if s in {"nan", "na", "n/a", ""}:
+        return np.nan
+    if s.startswith("y"):
+        return True
+    if s.startswith("n"):
+        return False
+    return np.nan
+
+
+def parse_has(x, ch):
+    s = str(x).lower().strip()
+    if s in {"nan", "na", "n/a", ""}:
+        return np.nan
+    return ch in s
+
+
+def parse_female(x):
+    s = str(x).lower().strip()
+    if s in {"nan", "na", "n/a", ""}:
+        return np.nan
+    if s.startswith("f"):
+        return True
+    if s.startswith("m"):
+        return False
+    return np.nan
+
+
 def parse_vacc(x: str):
     s = str(x).lower().strip()
     m = pd.Series(s).str.extract(r'(\d+)')[0]
@@ -174,7 +203,9 @@ def transp_subtype(x):
 
 
 def disease_group(x):
-    s = str(x).lower()
+    s = str(x).lower().strip()
+    if s in {'nan', 'na', 'n/a', ''}:
+        return None
     if 'm' in s:
         return 'Haematological malignancy'
     if 't' in s:
@@ -297,17 +328,17 @@ def fill_range(tab, row, vt, vm, vc):
 
 def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['age_vec'] = pd.to_numeric(df[COL_AGE], errors='coerce')
-    df['flag_female'] = df[COL_SEX].astype(str).str.lower().str.startswith('f')
+    df['flag_female'] = df[COL_SEX].map(parse_female)
     dis = df['baseline disease']
     df['heme'] = dis.map(heme_subtype)
     df['auto'] = dis.map(auto_subtype)
     df['trans'] = dis.map(transp_subtype)
     df['group'] = df[COL_DIS].map(disease_group)
     df['immu'] = df[COL_BASE].map(immuno_cat)
-    s = df[COL_DIS].astype(str).str.lower()
-    df['flag_malign'] = s.str.contains('m')
-    df['flag_autoimm'] = s.str.contains('a')
-    df['flag_transpl'] = s.str.contains('t')
+    s = df[COL_DIS]
+    df['flag_malign'] = s.map(lambda x: parse_has(x, 'm'))
+    df['flag_autoimm'] = s.map(lambda x: parse_has(x, 'a'))
+    df['flag_transpl'] = s.map(lambda x: parse_has(x, 't'))
     base = df[COL_BASE].astype(str).str.lower()
     df['flag_cd20'] = base.str.contains('cd20')
     df['flag_cart'] = base.str.contains('car')
@@ -315,16 +346,16 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['flag_immuno_none'] = ~(
         df[['flag_cd20', 'flag_cart', 'flag_hsct']].any(axis=1)
     ) | base.str.contains('none')
-    df['flag_gc'] = df[COL_GC].astype(str).str.lower().str.startswith('y')
+    df['flag_gc'] = df[COL_GC].map(parse_yn)
     vacc = df[COL_VACC].map(parse_vacc)
     df['vacc_yes'] = vacc.map(lambda x: x[0] == 'Yes')
     df['dose_vec'] = vacc.map(lambda x: x[1])
-    df['flag_ct'] = df[COL_CT].astype(str).str.lower().str.startswith('y')
-    df['flag_hosp'] = df[COL_HOSP].astype(str).str.lower().str.startswith('y')
+    df['flag_ct'] = df[COL_CT].map(parse_yn)
+    df['flag_hosp'] = df[COL_HOSP].map(parse_yn)
     df['rep_vec'] = pd.to_numeric(df[COL_REP], errors='coerce')
     df['geno'] = df[COL_GENO].map(geno_cat)
     df['flag_long'] = df['rep_vec'] >= 14
-    df['flag_surv'] = df[COL_SURV].astype(str).str.lower().str.startswith('y')
+    df['flag_surv'] = df[COL_SURV].map(parse_yn)
     df['adv'] = df[COL_AE_TYPE].map(ae_cat)
     return df
 
