@@ -278,16 +278,16 @@ def tests_table_c():
 
 def tests_table_d():
     info = {}
-    c = data_preprocessing.COMBO[COL_ERAD].astype(str).str.lower().str.startswith("n")
-    m = data_preprocessing.MONO[COL_ERAD].astype(str).str.lower().str.startswith("n")
+    c = data_preprocessing.COMBO[COL_ERAD].map(data_preprocessing.parse_yn).eq(False)
+    m = data_preprocessing.MONO[COL_ERAD].map(data_preprocessing.parse_yn).eq(False)
     info["SARS-CoV-2 Persistence\u00b9, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
         int(m.sum()),
         len(m) - int(m.sum()),
     )
-    c = data_preprocessing.COMBO[COL_SURV].astype(str).str.lower().str.startswith("n")
-    m = data_preprocessing.MONO[COL_SURV].astype(str).str.lower().str.startswith("n")
+    c = data_preprocessing.COMBO[COL_SURV].map(data_preprocessing.parse_yn).eq(False)
+    m = data_preprocessing.MONO[COL_SURV].map(data_preprocessing.parse_yn).eq(False)
     info["All-cause mortality\u00b2, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
@@ -295,12 +295,12 @@ def tests_table_d():
         len(m) - int(m.sum()),
     )
     c = (
-        data_preprocessing.COMBO[COL_ERAD].astype(str).str.lower().str.startswith("n")
-        & data_preprocessing.COMBO[COL_SURV].astype(str).str.lower().str.startswith("n")
+        data_preprocessing.COMBO[COL_ERAD].map(data_preprocessing.parse_yn).eq(False)
+        & data_preprocessing.COMBO[COL_SURV].map(data_preprocessing.parse_yn).eq(False)
     )
     m = (
-        data_preprocessing.MONO[COL_ERAD].astype(str).str.lower().str.startswith("n")
-        & data_preprocessing.MONO[COL_SURV].astype(str).str.lower().str.startswith("n")
+        data_preprocessing.MONO[COL_ERAD].map(data_preprocessing.parse_yn).eq(False)
+        & data_preprocessing.MONO[COL_SURV].map(data_preprocessing.parse_yn).eq(False)
     )
     info["SARS-CoV-2-related mortality\u00b3, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
@@ -308,8 +308,8 @@ def tests_table_d():
         int(m.sum()),
         len(m) - int(m.sum()),
     )
-    c = data_preprocessing.COMBO[COL_AE_YN].astype(str).str.lower().str.startswith("y")
-    m = data_preprocessing.MONO[COL_AE_YN].astype(str).str.lower().str.startswith("y")
+    c = data_preprocessing.COMBO[COL_AE_YN].map(data_preprocessing.parse_yn).eq(True)
+    m = data_preprocessing.MONO[COL_AE_YN].map(data_preprocessing.parse_yn).eq(True)
     info["AE\u2074, n (%)"] = chi_or_fisher_test(
         int(c.sum()),
         len(c) - int(c.sum()),
