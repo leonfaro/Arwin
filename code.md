@@ -956,7 +956,12 @@ COL_AE_YN = 'any adverse events\n[yes / no]'
 
 
 def flag(series, val):
-    return series.astype(str).str.lower().str.startswith(val)
+    return (
+        series.fillna("")
+        .astype(str)
+        .str.lower()
+        .str.startswith(val)
+    )
 
 
 index = [
