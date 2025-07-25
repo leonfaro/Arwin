@@ -1,5 +1,5 @@
 import pandas as pd
-from data_preprocessing import TOTAL, MONO, COMBO, fill_rate
+from data_preprocessing import TOTAL, MONO, COMBO, fill_rate, parse_yn
 
 COL_ERAD = 'eradication outcome successful\n[yes / no]'
 COL_SURV = 'survival outcome\n[yes / no]'
@@ -7,7 +7,8 @@ COL_AE_YN = 'any adverse events\n[yes / no]'
 
 
 def flag(series, val):
-    return series.astype(str).str.lower().str.startswith(val)
+    s = series.map(parse_yn)
+    return s == (val == 'y')
 
 
 index = [

@@ -110,7 +110,7 @@
 
 | row                                  | Total      | Monotherapy   | Combination   |   p-value | test   |
 |:-------------------------------------|:-----------|:--------------|:--------------|----------:|:-------|
-| SARS-CoV-2 Persistence¹, n (%)       | 14 (13.5%) | 5 (15.2%)     | 6 (10.5%)     |     0.523 | Fisher |
+| SARS-CoV-2 Persistence¹, n (%)       | 11 (10.6%) | 3 (9.1%)      | 5 (8.8%)      |     1     | Fisher |
 | All-cause mortality², n (%)          | 10 (9.6%)  | 2 (6.1%)      | 4 (7.0%)      |     1     | Fisher |
 | SARS-CoV-2-related mortality³, n (%) | 5 (4.8%)   | 1 (3.0%)      | 2 (3.5%)      |     1     | Fisher |
 | AE⁴, n (%)                           | 6 (5.8%)   | 1 (3.0%)      | 5 (8.8%)      |     0.409 | Fisher |
