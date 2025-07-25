@@ -148,16 +148,6 @@ def tests_table_b():
 
 def tests_table_c():
     info = {}
-    info[("Age, median (IQR)", "")] = cont_test_method(
-        data_preprocessing.MONO["age_vec"],
-        data_preprocessing.COMBO["age_vec"],
-    )
-    info[("Sex (female), n (%)", "")] = chi_or_fisher_test(
-        int(data_preprocessing.COMBO["flag_female"].sum()),
-        len(data_preprocessing.COMBO) - int(data_preprocessing.COMBO["flag_female"].sum()),
-        int(data_preprocessing.MONO["flag_female"].sum()),
-        len(data_preprocessing.MONO) - int(data_preprocessing.MONO["flag_female"].sum()),
-    )
     for lab in [
         "Other",
         "DLBCL",
@@ -198,60 +188,14 @@ def tests_table_c():
             int((data_preprocessing.MONO["trans"] == lab).sum()),
             len(data_preprocessing.MONO) - int((data_preprocessing.MONO["trans"] == lab).sum()),
         )
-    for lab in [
-        "Haematological malignancy",
-        "Autoimmune disease",
-        "Transplantation",
-    ]:
-        info[("Disease group, n (%)", lab)] = chi_or_fisher_test(
-            int((data_preprocessing.COMBO["group"] == lab).sum()),
-            len(data_preprocessing.COMBO) - int((data_preprocessing.COMBO["group"] == lab).sum()),
-            int((data_preprocessing.MONO["group"] == lab).sum()),
-            len(data_preprocessing.MONO) - int((data_preprocessing.MONO["group"] == lab).sum()),
-        )
-    pairs = [
-        ("None", "flag_immuno_none"),
-        ("Anti-CD-20", "flag_cd20"),
-        ("CAR-T", "flag_cart"),
-        ("HSCT", "flag_hsct"),
-    ]
-    for lbl, col in pairs:
-        info[("Immunosuppressive treatment, n (%)", lbl)] = chi_or_fisher_test(
-            int(data_preprocessing.COMBO[col].sum()),
-            len(data_preprocessing.COMBO) - int(data_preprocessing.COMBO[col].sum()),
-            int(data_preprocessing.MONO[col].sum()),
-            len(data_preprocessing.MONO) - int(data_preprocessing.MONO[col].sum()),
-        )
-    info[("Glucocorticoid use, n (%)", "")] = chi_or_fisher_test(
-        int(data_preprocessing.COMBO["flag_gc"].sum()),
-        len(data_preprocessing.COMBO) - int(data_preprocessing.COMBO["flag_gc"].sum()),
-        int(data_preprocessing.MONO["flag_gc"].sum()),
-        len(data_preprocessing.MONO) - int(data_preprocessing.MONO["flag_gc"].sum()),
-    )
-    info[("SARS-CoV-2 vaccination, n (%)", "")] = chi_or_fisher_test(
-        int(data_preprocessing.COMBO["vacc_yes"].sum()),
-        len(data_preprocessing.COMBO) - int(data_preprocessing.COMBO["vacc_yes"].sum()),
-        int(data_preprocessing.MONO["vacc_yes"].sum()),
-        len(data_preprocessing.MONO) - int(data_preprocessing.MONO["vacc_yes"].sum()),
-    )
-    info[("Number of vaccine doses, n (range)", "")] = cont_test_method(
-        data_preprocessing.MONO["dose_vec"],
-        data_preprocessing.COMBO["dose_vec"],
-    )
-    info[("Thoracic CT changes, n (%)", "")] = chi_or_fisher_test(
-        int(data_preprocessing.COMBO["flag_ct"].sum()),
-        len(data_preprocessing.COMBO) - int(data_preprocessing.COMBO["flag_ct"].sum()),
-        int(data_preprocessing.MONO["flag_ct"].sum()),
-        len(data_preprocessing.MONO) - int(data_preprocessing.MONO["flag_ct"].sum()),
-    )
     info[("Duration of SARS-CoV-2 replication (days), median (IQR)", "")] = cont_test_method(
         data_preprocessing.MONO["rep_vec"],
         data_preprocessing.COMBO["rep_vec"],
     )
     for lab in [
-        "BA.5-derived Omicron subvariant",
-        "BA.2-derived Omicron subvariant",
-        "BA.1-derived Omicron subvariant",
+        "BA.5",
+        "BA.2",
+        "BA.1",
         "Other",
     ]:
         info[("SARS-CoV-2 genotype, n (%)", lab)] = chi_or_fisher_test(
@@ -347,6 +291,29 @@ def section(title, tab, tests, subrows=True):
     return text
 
 
+def section_no_test(title, tab, subrows=True):
+    df = tab.copy()
+    if subrows:
+        if df.index.nlevels == 1:
+            df.index = pd.MultiIndex.from_product([df.index, [""]])
+        df.insert(0, "subrow", df.index.get_level_values(1))
+        df.insert(0, "row", df.index.get_level_values(0))
+        df.loc[df["subrow"] != "", "row"] = ""
+    else:
+        if df.index.nlevels > 1:
+            df.index = df.index.get_level_values(0)
+        df.insert(0, "row", df.index)
+    body = df.reset_index(drop=True).to_markdown(index=False)
+    foot = tab.attrs.get("footnote", "").strip()
+    foot = re.sub(r"\s*(?=\d+:)", "\n", foot)
+    foot = "\n".join(
+        s.strip() for s in foot.splitlines() if s.strip() and not s.startswith("Abbreviations")
+    )
+    foot = "  \n".join(f"{s}  " for s in foot.splitlines())
+    text = "# " + title + "\n\n" + body + "\n\n" + foot + "\n\n"
+    return text
+
+
 def clean(path):
     if os.path.exists(path):
         os.remove(path)
@@ -395,6 +362,16 @@ def main():
         f.write(section("Table B. Demographics and Clinical Characteristics", t2, m2))
         f.write(section("Table C. Detailed Patient Characteristics", t3, m3))
         f.write(section("Table D. Outcomes in all cohorts", t4, m4, subrows=False))
+    out_nt = "table_no_test.md"
+    clean(out_nt)
+    with open(out_nt, "w") as f:
+        f.write(section_no_test("Table A. Treatment Approach", t1))
+        f.write("\\newpage\n")
+        f.write(section_no_test("Table B. Demographics and Clinical Characteristics", t2))
+        f.write("\\newpage\n")
+        f.write(section_no_test("Table C. Detailed Patient Characteristics", t3))
+        f.write("   \n")
+        f.write(section_no_test("Table D. Outcomes in all cohorts", t4, subrows=False))
     out_code = "code.md"
     clean(out_code)
     with open(out_code, "w") as f:
