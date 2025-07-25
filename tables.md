@@ -84,9 +84,10 @@
 |                                                         | Autoimmune disease              | 7 (6.7%)    | 2 (6.1%)      | 3 (5.3%)      | 1.000     | Fisher         |
 |                                                         | Transplantation                 | 4 (3.8%)    | 3 (9.1%)      | 1 (1.8%)      | 0.138     | Fisher         |
 | Immunosuppressive treatment, n (%)                      |                                 |             |               |               |           |                |
-|                                                         | None                            | 22 (21.2%)  | 9 (27.3%)     | 7 (12.3%)     | 0.132     | Chi2 df=1      |
+|                                                         | None                            | 19 (18.3%)  | 7 (21.2%)     | 6 (10.5%)     | 0.216     | Fisher         |
 |                                                         | Anti-CD-20                      | 79 (76.0%)  | 24 (72.7%)    | 47 (82.5%)    | 0.411     | Chi2 df=1      |
-|                                                         | CAR-T                           | 3 (2.9%)    | 0 (0.0%)      | 3 (5.3%)      | 0.296     | Fisher         |
+|                                                         | CAR-T                           | 4 (3.8%)    | 0 (0.0%)      | 4 (7.0%)      | 0.292     | Fisher         |
+|                                                         | HSCT                            | 4 (3.8%)    | 3 (9.1%)      | 1 (1.8%)      | 0.138     | Fisher         |
 | Glucocorticoid use, n (%)                               |                                 | 47 (45.2%)  | 13 (39.4%)    | 29 (50.9%)    | 0.405     | Chi2 df=1      |
 | SARS-CoV-2 vaccination, n (%)                           |                                 | 95 (91.3%)  | 30 (90.9%)    | 53 (93.0%)    | 0.704     | Fisher         |
 | Number of vaccine doses, n (range)                      |                                 | 2-8         | 2-6           | 2-8           | 0.651     | Mann-Whitney-U |
