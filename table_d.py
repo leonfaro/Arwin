@@ -18,7 +18,7 @@ index = [
 ]
 
 
-def build_table_B():
+def build_table_d():
     tab = pd.DataFrame(index=index, columns=['Total', 'Monotherapy', 'Combination', 'p-value'])
 
     def add(row, ft, fm, fc):
@@ -46,8 +46,8 @@ def build_table_B():
 
 
 if __name__ == '__main__':
-    tab = build_table_B()
-    print('Table B. Outcomes in all cohorts.')
+    tab = build_table_d()
+    print('Table D. Outcomes in all cohorts.')
     print(tab.to_string())
     foot = tab.attrs['footnote']
     for line in foot.split('\n'):

@@ -1,8 +1,8 @@
 import os
-from table_x import build_table_x
-from table_y import build_table_y
-from table_z import build_table_z
-from table_B import build_table_B, COL_ERAD, COL_SURV, COL_AE_YN
+from table_a import build_table_a
+from table_b import build_table_b
+from table_c import build_table_c
+from table_d import build_table_d, COL_ERAD, COL_SURV, COL_AE_YN
 import data_preprocessing
 import pandas as pd
 from scipy.stats import chi2_contingency, shapiro
@@ -32,7 +32,7 @@ def cont_test_method(v1, v2):
     return "Mann-Whitney-U"
 
 
-def tests_table_x():
+def tests_table_a():
     days_m, courses_m = data_preprocessing.parse_ext(data_preprocessing.MONO[data_preprocessing.COL_EXT])
     days_c, courses_c = data_preprocessing.parse_ext(data_preprocessing.COMBO[data_preprocessing.COL_EXT])
     info = {}
@@ -78,7 +78,7 @@ def tests_table_x():
     return info
 
 
-def tests_table_y():
+def tests_table_b():
     info = {}
     info[("Age, median (IQR)", "")] = cont_test_method(
         data_preprocessing.MONO["age_vec"],
@@ -146,7 +146,7 @@ def tests_table_y():
     return info
 
 
-def tests_table_z():
+def tests_table_c():
     info = {}
     info[("Age, median (IQR)", "")] = cont_test_method(
         data_preprocessing.MONO["age_vec"],
@@ -276,7 +276,7 @@ def tests_table_z():
     return info
 
 
-def tests_table_B():
+def tests_table_d():
     info = {}
     c = data_preprocessing.COMBO[COL_ERAD].astype(str).str.lower().str.startswith("n")
     m = data_preprocessing.MONO[COL_ERAD].astype(str).str.lower().str.startswith("n")
@@ -373,27 +373,27 @@ def code_without_imports(path):
 
 
 def main():
-    t1 = build_table_x()
-    t2 = build_table_y()
-    t3 = build_table_z()
-    t4 = build_table_B()
-    m1 = tests_table_x()
-    m2 = tests_table_y()
-    m3 = tests_table_z()
-    m4 = tests_table_B()
+    t1 = build_table_a()
+    t2 = build_table_b()
+    t3 = build_table_c()
+    t4 = build_table_d()
+    m1 = tests_table_a()
+    m2 = tests_table_b()
+    m3 = tests_table_c()
+    m4 = tests_table_d()
     data_preprocessing.export_abbreviations_md('abbreviations.md')
     out_tab = "tables.md"
     clean(out_tab)
     with open(out_tab, "w") as f:
-        f.write(section("Table X. Treatment Approach", t1, m1))
-        f.write(section("Table Y. Demographics and Clinical Characteristics", t2, m2))
-        f.write(section("Table Z. Detailed Patient Characteristics", t3, m3))
-        f.write(section("Table B. Outcomes in all cohorts", t4, m4, subrows=False))
+        f.write(section("Table A. Treatment Approach", t1, m1))
+        f.write(section("Table B. Demographics and Clinical Characteristics", t2, m2))
+        f.write(section("Table C. Detailed Patient Characteristics", t3, m3))
+        f.write(section("Table D. Outcomes in all cohorts", t4, m4, subrows=False))
     out_code = "code.md"
     clean(out_code)
     with open(out_code, "w") as f:
         f.write(open("data_preprocessing.py").read().rstrip() + "\n\n")
-        for name in ["table_x.py", "table_y.py", "table_z.py", "table_B.py"]:
+        for name in ["table_a.py", "table_b.py", "table_c.py", "table_d.py"]:
             f.write(code_without_imports(name))
             f.write("\n\n")
 

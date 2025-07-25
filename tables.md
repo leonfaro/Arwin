@@ -1,4 +1,4 @@
-# Table X. Treatment Approach
+# Table A. Treatment Approach
 
 | row                        | subrow                      | Total      | Monotherapy   | Combination   | p-value   | test           |
 |:---------------------------|:----------------------------|:-----------|:--------------|:--------------|:----------|:---------------|
@@ -23,7 +23,7 @@
 1: Any treatment administered prior to extended nirmatrelvir-ritonavir, including standard 5-day Paxlovid courses with or without other antivirals.
 2: Extended nirmatrelvir-ritonavir regimens (with or without concurrent antivirals) when no subsequent antiviral therapy was administered.
 
-# Table Y. Demographics and Clinical Characteristics
+# Table B. Demographics and Clinical Characteristics
 
 | row                                | subrow                   | Total      | Monotherapy   | Combination   | p-value   | test           |
 |:-----------------------------------|:-------------------------|:-----------|:--------------|:--------------|:----------|:---------------|
@@ -50,7 +50,7 @@
 - NMV-r, nirmatrelvir-ritonavir.
 1: Treatment setting where prolonged NMV-r was administered.
 
-# Table Z. Detailed Patient Characteristics
+# Table C. Detailed Patient Characteristics
 
 | row                                                     | subrow                          | Total       | Monotherapy   | Combination   | p-value   | test           |
 |:--------------------------------------------------------|:--------------------------------|:------------|:--------------|:--------------|:----------|:---------------|
@@ -106,7 +106,7 @@
 
 
 
-# Table B. Outcomes in all cohorts
+# Table D. Outcomes in all cohorts
 
 | row                                  | Total      | Monotherapy   | Combination   |   p-value | test   |
 |:-------------------------------------|:-----------|:--------------|:--------------|----------:|:-------|

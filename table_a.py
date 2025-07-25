@@ -19,7 +19,7 @@ from data_preprocessing import (
 )
 
 
-def build_table_x():
+def build_table_a():
     days_t, courses_t = parse_ext(TOTAL[COL_EXT])
     days_m, courses_m = parse_ext(MONO[COL_EXT])
     days_c, courses_c = parse_ext(COMBO[COL_EXT])
@@ -132,7 +132,7 @@ def build_table_x():
     return t_x
 
 
-def build_table_x_raw():
+def build_table_a_raw():
     days_t, courses_t = parse_ext(TOTAL[COL_EXT])
     days_m, courses_m = parse_ext(MONO[COL_EXT])
     days_c, courses_c = parse_ext(COMBO[COL_EXT])
@@ -238,8 +238,8 @@ def build_table_x_raw():
 
 
 if __name__ == '__main__':
-    print('Table X. Treatment Approach.')
-    print(build_table_x().to_string())
+    print('Table A. Treatment Approach.')
+    print(build_table_a().to_string())
     print('- NMV-r, nirmatrelvir-ritonavir.')
     print(
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '

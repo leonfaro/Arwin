@@ -374,7 +374,7 @@ if __name__ == '__main__':
     print(COMBO.shape)
     print(baseline_stats())
 
-def build_table_x():
+def build_table_a():
     days_t, courses_t = parse_ext(TOTAL[COL_EXT])
     days_m, courses_m = parse_ext(MONO[COL_EXT])
     days_c, courses_c = parse_ext(COMBO[COL_EXT])
@@ -487,7 +487,7 @@ def build_table_x():
     return t_x
 
 
-def build_table_x_raw():
+def build_table_a_raw():
     days_t, courses_t = parse_ext(TOTAL[COL_EXT])
     days_m, courses_m = parse_ext(MONO[COL_EXT])
     days_c, courses_c = parse_ext(COMBO[COL_EXT])
@@ -593,8 +593,8 @@ def build_table_x_raw():
 
 
 if __name__ == '__main__':
-    print('Table X. Treatment Approach.')
-    print(build_table_x().to_string())
+    print('Table A. Treatment Approach.')
+    print(build_table_a().to_string())
     print('- NMV-r, nirmatrelvir-ritonavir.')
     print(
         '1: Any treatment administered prior to extended nirmatrelvir-ritonavir, '
@@ -637,45 +637,45 @@ columns = [
     'p-value',
 ]
 
-table_y = pd.DataFrame(index=index, columns=columns)
-table_y_raw = pd.DataFrame(index=index, columns=columns)
-table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+table_b = pd.DataFrame(index=index, columns=columns)
+table_b_raw = pd.DataFrame(index=index, columns=columns)
+table_b.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+table_b_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
 
 
 def add_rate(row, ft, fm, fc):
-    nt, nm, nc, p = fill_rate(table_y, row, ft, fm, fc)
-    table_y_raw.at[row, 'Total'] = nt
-    table_y_raw.at[row, 'Monotherapy'] = nm
-    table_y_raw.at[row, 'Combination'] = nc
-    table_y_raw.at[row, 'p-value'] = p
+    nt, nm, nc, p = fill_rate(table_b, row, ft, fm, fc)
+    table_b_raw.at[row, 'Total'] = nt
+    table_b_raw.at[row, 'Monotherapy'] = nm
+    table_b_raw.at[row, 'Combination'] = nc
+    table_b_raw.at[row, 'p-value'] = p
 
 
 def add_median_iqr(row, vt, vm, vc):
-    vt, vm, vc, p = fill_median_iqr(table_y, row, vt, vm, vc)
-    table_y_raw.at[row, 'Total'] = vt.median()
-    table_y_raw.at[row, 'Monotherapy'] = vm.median()
-    table_y_raw.at[row, 'Combination'] = vc.median()
-    table_y_raw.at[row, 'p-value'] = p
+    vt, vm, vc, p = fill_median_iqr(table_b, row, vt, vm, vc)
+    table_b_raw.at[row, 'Total'] = vt.median()
+    table_b_raw.at[row, 'Monotherapy'] = vm.median()
+    table_b_raw.at[row, 'Combination'] = vc.median()
+    table_b_raw.at[row, 'p-value'] = p
 
 
 def add_mean_range(row, vt, vm, vc):
-    vt, vm, vc, p = fill_mean_range(table_y, row, vt, vm, vc)
-    table_y_raw.at[row, 'Total'] = vt.mean()
-    table_y_raw.at[row, 'Monotherapy'] = vm.mean()
-    table_y_raw.at[row, 'Combination'] = vc.mean()
-    table_y_raw.at[row, 'p-value'] = p
+    vt, vm, vc, p = fill_mean_range(table_b, row, vt, vm, vc)
+    table_b_raw.at[row, 'Total'] = vt.mean()
+    table_b_raw.at[row, 'Monotherapy'] = vm.mean()
+    table_b_raw.at[row, 'Combination'] = vc.mean()
+    table_b_raw.at[row, 'p-value'] = p
 
 
-def build_table_y():
-    table_y.loc[:] = None
-    table_y_raw.loc[:] = None
-    table_y.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-    table_y_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
+def build_table_b():
+    table_b.loc[:] = None
+    table_b_raw.loc[:] = None
+    table_b.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_b_raw.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), None]
     add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
     add_rate(('Female sex, n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
-    table_y.loc[('Underlying conditions, n (%)', '')] = ''
-    table_y_raw.loc[('Underlying conditions, n (%)', '')] = None
+    table_b.loc[('Underlying conditions, n (%)', '')] = ''
+    table_b_raw.loc[('Underlying conditions, n (%)', '')] = None
     pairs = [
         ('Hematological malignancy', 'flag_malign'),
         ('Autoimmune', 'flag_autoimm'),
@@ -683,8 +683,8 @@ def build_table_y():
     ]
     for lbl, col in pairs:
         add_rate(('Underlying conditions, n (%)', lbl), TOTAL[col], MONO[col], COMBO[col])
-    table_y.loc[('Immunosuppressive treatment, n (%)', '')] = ''
-    table_y_raw.loc[('Immunosuppressive treatment, n (%)', '')] = None
+    table_b.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    table_b_raw.loc[('Immunosuppressive treatment, n (%)', '')] = None
     pairs = [
         ('Anti-CD20', 'flag_cd20'),
         ('CAR-T', 'flag_cart'),
@@ -703,66 +703,66 @@ def build_table_y():
     )
     add_rate(('Thoracic CT changes, n (%)', ''), TOTAL['flag_ct'], MONO['flag_ct'], COMBO['flag_ct'])
 
-    table_y.loc[('Treatment setting\u00b9, n (%)', '')] = ''
-    table_y_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
+    table_b.loc[('Treatment setting\u00b9, n (%)', '')] = ''
+    table_b_raw.loc[('Treatment setting\u00b9, n (%)', '')] = None
     nt, nm, nc, p_set = fill_rate(
-        table_y,
+        table_b,
         ('Treatment setting\u00b9, n (%)', 'Hospital'),
         TOTAL['flag_hosp'],
         MONO['flag_hosp'],
         COMBO['flag_hosp'],
     )
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Total'] = nt
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Monotherapy'] = nm
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Combination'] = nc
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = p_set
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Total'] = nt
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Monotherapy'] = nm
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'Combination'] = nc
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = p_set
     nt2, nm2, nc2, _ = fill_rate(
-        table_y,
+        table_b,
         ('Treatment setting\u00b9, n (%)', 'Outpatient'),
         ~TOTAL['flag_hosp'],
         ~MONO['flag_hosp'],
         ~COMBO['flag_hosp'],
     )
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Total'] = nt2
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Monotherapy'] = nm2
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Combination'] = nc2
-    table_y_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = None
-    table_y.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = ''
-    table_y.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = ''
-    table_y.at[('Treatment setting\u00b9, n (%)', ''), 'p-value'] = fmt_p(p_set)
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Total'] = nt2
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Monotherapy'] = nm2
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'Combination'] = nc2
+    table_b_raw.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = None
+    table_b.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = ''
+    table_b.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = ''
+    table_b.at[('Treatment setting\u00b9, n (%)', ''), 'p-value'] = fmt_p(p_set)
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Treatment setting where prolonged NMV-r was administered.'
     )
-    table_y.attrs['footnote'] = foot
-    table_y_raw.attrs['footnote'] = foot
-    return table_y
+    table_b.attrs['footnote'] = foot
+    table_b_raw.attrs['footnote'] = foot
+    return table_b
 
 
-def build_table_y_raw():
-    if table_y_raw.isnull().all().all():
-        build_table_y()
-    return table_y_raw
+def build_table_b_raw():
+    if table_b_raw.isnull().all().all():
+        build_table_b()
+    return table_b_raw
 
 
 if __name__ == '__main__':
-    tab = build_table_y()
-    tab.to_excel('table_y_v7.xlsx')
-    build_table_y_raw().to_csv('table_y_v7.csv')
+    tab = build_table_b()
+    tab.to_excel('table_b_v7.xlsx')
+    build_table_b_raw().to_csv('table_b_v7.csv')
     print(tab.shape)
-    print('Table Y. Demographics and Clinical Characteristics.')
-    print(build_table_y().to_string())
+    print('Table B. Demographics and Clinical Characteristics.')
+    print(build_table_b().to_string())
     print('- NMV-r, nirmatrelvir-ritonavir.')
     print('1: Treatment setting where prolonged NMV-r was administered.')
 
 __all__ = [
-    'table_y',
-    'table_y_raw',
+    'table_b',
+    'table_b_raw',
     'TOTAL',
     'MONO',
     'COMBO',
-    'build_table_y',
-    'build_table_y_raw',
+    'build_table_b',
+    'build_table_b_raw',
     'add_rate',
     'add_median_iqr',
     'add_mean_range',
@@ -830,32 +830,32 @@ columns = [
     'p-value',
 ]
 
-table_z = pd.DataFrame(index=index, columns=columns)
-table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+table_c = pd.DataFrame(index=index, columns=columns)
+table_c.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
 
 def add_rate(row, ft, fm, fc):
-    fill_rate(table_z, row, ft, fm, fc)
+    fill_rate(table_c, row, ft, fm, fc)
 
 
 def add_median_iqr(row, vt, vm, vc):
-    fill_median_iqr(table_z, row, vt, vm, vc)
+    fill_median_iqr(table_c, row, vt, vm, vc)
 
 
 def add_range(row, vt, vm, vc):
-    fill_range(table_z, row, vt, vm, vc)
+    fill_range(table_c, row, vt, vm, vc)
 
 
-def build_table_z():
-    table_z.loc[:] = None
-    table_z.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
-    table_z.loc[('Haematological malignancy, n (%)', '')] = ''
-    table_z.loc[('Autoimmune disease, n (%)', '')] = ''
-    table_z.loc[('Transplantation, n (%)', '')] = ''
-    table_z.loc[('Disease group, n (%)', '')] = ''
-    table_z.loc[('Immunosuppressive treatment, n (%)', '')] = ''
-    table_z.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
-    table_z.loc[('Adverse events, n (%)', '')] = ''
+def build_table_c():
+    table_c.loc[:] = None
+    table_c.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
+    table_c.loc[('Haematological malignancy, n (%)', '')] = ''
+    table_c.loc[('Autoimmune disease, n (%)', '')] = ''
+    table_c.loc[('Transplantation, n (%)', '')] = ''
+    table_c.loc[('Disease group, n (%)', '')] = ''
+    table_c.loc[('Immunosuppressive treatment, n (%)', '')] = ''
+    table_c.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
+    table_c.loc[('Adverse events, n (%)', '')] = ''
     add_median_iqr(('Age, median (IQR)', ''), TOTAL['age_vec'], MONO['age_vec'], COMBO['age_vec'])
     add_rate(('Sex (female), n (%)', ''), TOTAL['flag_female'], MONO['flag_female'], COMBO['flag_female'])
     labs = ['Other', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
@@ -941,12 +941,12 @@ def build_table_z():
     )
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
-    return table_z
+    return table_c
 
 
 if __name__ == '__main__':
-    print('Table Z. Detailed Patient Characteristics.')
-    print(build_table_z().to_string())
+    print('Table C. Detailed Patient Characteristics.')
+    print(build_table_c().to_string())
 
 COL_ERAD = 'eradication outcome successful\n[yes / no]'
 COL_SURV = 'survival outcome\n[yes / no]'
@@ -965,7 +965,7 @@ index = [
 ]
 
 
-def build_table_B():
+def build_table_d():
     tab = pd.DataFrame(index=index, columns=['Total', 'Monotherapy', 'Combination', 'p-value'])
 
     def add(row, ft, fm, fc):
@@ -993,8 +993,8 @@ def build_table_B():
 
 
 if __name__ == '__main__':
-    tab = build_table_B()
-    print('Table B. Outcomes in all cohorts.')
+    tab = build_table_d()
+    print('Table D. Outcomes in all cohorts.')
     print(tab.to_string())
     foot = tab.attrs['footnote']
     for line in foot.split('\n'):
