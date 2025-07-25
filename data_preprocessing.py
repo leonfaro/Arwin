@@ -51,6 +51,8 @@ for _df in (TOTAL, MONO, COMBO):
         if c.startswith('2nd line extended Paxlovid treatment'):
             _df.rename(columns={c: COL_EXT}, inplace=True)
     s = _df[COL_OTHER].astype(str).str.lower()
+    s = s.str.replace('n/a', '', regex=False)
+    s = s.replace({'na': '', 'nan': ''})
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
     _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
@@ -85,9 +87,11 @@ def cont_test(v1, v2):
 
 
 def parse_vacc(x: str):
-    s = str(x).lower()
+    s = str(x).lower().strip()
     m = pd.Series(s).str.extract(r'(\d+)')[0]
     dose = float(m.iloc[0]) if m.notna().any() else np.nan
+    if s in {'nan', 'na', 'n/a', ''}:
+        return 'Unknown', dose
     if s.startswith('y'):
         return 'Yes', dose
     if s.startswith('n'):
