@@ -167,6 +167,8 @@ def heme_subtype(x):
         return 'MM'
     if ',' in s or '+' in s:
         return 'Mixed'
+    if s.strip() == 'nos':
+        return 'NOS'
     if s.strip():
         return 'Other'
     return None
@@ -807,7 +809,8 @@ __all__ = [
 index = pd.MultiIndex.from_tuples(
     [
         ('Haematological malignancy, n (%)', ''),
-        ('Haematological malignancy, n (%)', 'Other'),
+        ('Haematological malignancy, n (%)', 'Other\u00b9'),
+        ('Haematological malignancy, n (%)', 'NOS'),
         ('Haematological malignancy, n (%)', 'DLBCL'),
         ('Haematological malignancy, n (%)', 'ALL'),
         ('Haematological malignancy, n (%)', 'CLL'),
@@ -873,13 +876,14 @@ def build_table_c():
     table_c.loc[('Transplantation, n (%)', '')] = ''
     table_c.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
     table_c.loc[('Adverse events, n (%)', '')] = ''
-    labs = ['Other', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
+    labs = ['Other\u00b9', 'NOS', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
     for lab in labs:
+        db_lab = 'Other' if lab == 'Other\u00b9' else lab
         add_rate(
             ('Haematological malignancy, n (%)', lab),
-            TOTAL['heme'] == lab,
-            MONO['heme'] == lab,
-            COMBO['heme'] == lab,
+            TOTAL['heme'] == db_lab,
+            MONO['heme'] == db_lab,
+            COMBO['heme'] == db_lab,
         )
     labs = [
         'MCTD',
@@ -938,6 +942,10 @@ def build_table_c():
     )
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
+    table_c.attrs['footnote'] = (
+        '1: Other includes MCD, MCTD, CREST, ANCA-Vasculitis, KT, LT, MS, '
+        'NMDA-encephalitis, RA.'
+    )
     return table_c
 
 

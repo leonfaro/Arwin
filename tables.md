@@ -55,7 +55,8 @@
 | row                                                     | subrow             | Total       | Monotherapy   | Combination   | p-value   | test           |
 |:--------------------------------------------------------|:-------------------|:------------|:--------------|:--------------|:----------|:---------------|
 | Haematological malignancy, n (%)                        |                    |             |               |               |           |                |
-|                                                         | Other              | 20 (19.2%)  | 8 (24.2%)     | 10 (17.5%)    | 0.623     | Chi2 df=1      |
+|                                                         | Other¹             | 9 (8.7%)    | 4 (12.1%)     | 3 (5.3%)      | 0.255     |                |
+|                                                         | NOS                | 11 (10.6%)  | 4 (12.1%)     | 7 (12.3%)     | 1.000     |                |
 |                                                         | DLBCL              | 14 (13.5%)  | 1 (3.0%)      | 11 (19.3%)    | 0.050     | Fisher         |
 |                                                         | ALL                | 6 (5.8%)    | 5 (15.2%)     | 1 (1.8%)      | 0.024     | Fisher         |
 |                                                         | CLL                | 6 (5.8%)    | 0 (0.0%)      | 5 (8.8%)      | 0.154     | Fisher         |
@@ -89,7 +90,7 @@
 |                                                         | Thrombocytopenia   | 1 (1.0%)    | 0 (0.0%)      | 1 (1.8%)      | 1.000     | Fisher         |
 |                                                         | Other              | 5 (4.8%)    | 1 (3.0%)      | 4 (7.0%)      | 0.648     | Fisher         |
 
-
+1: Other includes MCD, MCTD, CREST, ANCA-Vasculitis, KT, LT, MS, NMDA-encephalitis, RA.
 
 # Table D. Outcomes in all cohorts
 
