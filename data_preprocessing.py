@@ -167,6 +167,8 @@ def heme_subtype(x):
         return 'MM'
     if ',' in s or '+' in s:
         return 'Mixed'
+    if s.strip() == 'nos':
+        return 'NOS'
     if s.strip():
         return 'Other'
     return None
