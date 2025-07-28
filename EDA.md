@@ -4,7 +4,7 @@ The Excel file `data characteristics v10.xlsx` contains three sheets:
 
 | sheet | n |
 |---|---|
-| primary cohort, clean | 161 |
+| primary cohort, clean | 104 |
 | subgroup mono n=33 | 33 |
 | subgroup combo, n=57 | 57 |
 
