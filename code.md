@@ -151,18 +151,22 @@ def group_immuno(x: str) -> str:
 
 def heme_subtype(x):
     s = str(x).lower()
+    if ',' in s or '+' in s:
+        return 'Mixed'
     if 'dlbcl' in s:
         return 'DLBCL'
     if 'all' in s:
         return 'ALL'
-    if 'cll' in s and ',' not in s:
+    if 'cll' in s and ',' not in s and '+' not in s:
         return 'CLL'
     if 'aml' in s:
         return 'AML'
     if 'follicular' in s or s.strip() == 'fl' or ' fl' in s:
         return 'FL'
-    if 'nhl' in s or 'lymphoma' in s or 'mcl' in s or 'lpl' in s or 'malt' in s:
+    if 'nhl' in s or 'lymphoma' in s:
         return 'NHL'
+    if 'mcl' in s or 'lpl' in s or 'malt' in s:
+        return 'Other'
     if 'mm' in s or 'pcl' in s or 'myeloma' in s:
         return 'MM'
     if ',' in s or '+' in s:
@@ -178,7 +182,7 @@ def auto_subtype(x):
     s = str(x).lower()
     if 'mctd' in s:
         return 'MCTD'
-    if 'rheumatoid' in s or s.strip() == 'ra':
+    if 'rheumatoid' in s or re.search(r'\bra\b', s):
         return 'RA'
     if 'crest' in s:
         return 'CREST'
@@ -943,8 +947,8 @@ def build_table_c():
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
     table_c.attrs['footnote'] = (
-        '1: Other includes MCD, MCTD, CREST, ANCA-Vasculitis, KT, LT, MS, '
-        'NMDA-encephalitis, RA.'
+        '1: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
+        'NMDA-encephalitis, SSc, LT, KT, CU.'
     )
     return table_c
 
