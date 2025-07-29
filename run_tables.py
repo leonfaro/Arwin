@@ -269,8 +269,35 @@ def tests_table_d():
     return info
 
 
+def sort_subrows(tab):
+    if tab.index.nlevels == 1:
+        return tab
+    pieces = []
+    for cat in tab.index.get_level_values(0).unique():
+        sub = tab.loc[cat]
+        if isinstance(sub, pd.Series):
+            pieces.append(sub.to_frame().T)
+            continue
+        head = sub.loc[[""], :] if "" in sub.index else pd.DataFrame()
+        rest = sub.drop("", errors="ignore")
+        if not rest.empty:
+            a = rest["Total"].astype(str).str.extract(r"([\d\.]+)")[0].astype(float)
+            b = rest["Monotherapy"].astype(str).str.extract(r"([\d\.]+)")[0].astype(float)
+            c = rest["Combination"].astype(str).str.extract(r"([\d\.]+)")[0].astype(float)
+            rest = rest.assign(_a=a, _b=b, _c=c)
+            rest = rest.sort_values(["_a", "_b", "_c"], ascending=False)
+            rest = rest.drop(columns=["_a", "_b", "_c"])
+        ordered = pd.concat([head, rest])
+        pieces.append(ordered)
+    result = pd.concat(pieces, keys=tab.index.get_level_values(0).unique())
+    result.index.names = tab.index.names
+    return result
+
+
 def section(title, tab, tests, subrows=True):
     df = tab.copy()
+    if subrows:
+        df = sort_subrows(df)
     if subrows:
         if df.index.nlevels == 1:
             df.index = pd.MultiIndex.from_product([df.index, [""]])
@@ -293,6 +320,8 @@ def section(title, tab, tests, subrows=True):
 
 def section_no_test(title, tab, subrows=True):
     df = tab.copy()
+    if subrows:
+        df = sort_subrows(df)
     if subrows:
         if df.index.nlevels == 1:
             df.index = pd.MultiIndex.from_product([df.index, [""]])
