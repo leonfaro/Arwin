@@ -145,8 +145,8 @@ def build_table_c():
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
     table_c.attrs['footnote'] = (
-        '1: Other includes MCD, MCTD, CREST, ANCA-Vasculitis, KT, LT, MS, '
-        'NMDA-encephalitis, RA.'
+        '1: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
+        'NMDA-encephalitis, SSc, LT, KT, CU.'
     )
     return table_c
 
