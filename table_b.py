@@ -3,6 +3,7 @@ from data_preprocessing import (
     TOTAL,
     MONO,
     COMBO,
+    COL_BASE,
     fill_rate,
     fill_median_iqr,
     fill_mean_range,
@@ -22,6 +23,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
         ('Immunosuppressive treatment, n (%)', 'CAR-T'),
         ('Immunosuppressive treatment, n (%)', 'HSCT'),
+        ('Immunosuppressive treatment, n (%)', 'Other'),
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Glucocorticoid use, n (%)', ''),
         ('SARS-CoV-2 vaccination, n (%)', ''),
@@ -93,6 +95,7 @@ def build_table_b():
         ('Anti-CD20', 'flag_cd20'),
         ('CAR-T', 'flag_cart'),
         ('HSCT', 'flag_hsct'),
+        ('Other', 'flag_immuno_other'),
         ('None', 'flag_immuno_none'),
     ]
     for lbl, col in pairs:
@@ -134,9 +137,16 @@ def build_table_b():
     table_b.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = ''
     table_b.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = ''
     table_b.at[('Treatment setting\u00b9, n (%)', ''), 'p-value'] = fmt_p(p_set)
+    vals = (
+        TOTAL.loc[TOTAL['flag_immuno_other'], COL_BASE]
+        .dropna()
+        .unique()
+    )
+    extra = '; '.join(str(v) for v in vals)
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
-        '1: Treatment setting where prolonged NMV-r was administered.'
+        '1: Treatment setting where prolonged NMV-r was administered.\n'
+        f'2: Other immunosuppressive treatment: {extra}.'
     )
     table_b.attrs['footnote'] = foot
     table_b_raw.attrs['footnote'] = foot
