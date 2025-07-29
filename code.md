@@ -129,24 +129,23 @@ def parse_vacc(x: str):
 
 
 def group_immuno(x: str) -> str:
-    tags = re.split(r'[,\s]+', str(x).lower())
+    s = str(x).lower().strip()
+    if s in {'nan', 'na', 'n/a', 'none', ''}:
+        return 'None'
+    tags = re.split(r'[,\s]+', s)
     labs = set()
     for t in tags:
         if not t:
             continue
-        if 'cd20' in t:
+        if 'cd20' in t and 'hsct' not in t and 'car' not in t:
             labs.add('CD20')
-        elif 'car' in t:
-            labs.add('CAR-T')
-        elif 'hsct' in t:
+        elif 'hsct' in t and 'cd20' not in t and 'car' not in t:
             labs.add('HSCT')
-        elif 'none' in t:
-            labs.add('none')
+        elif 'car' in t and 'cd20' not in t and 'hsct' not in t:
+            labs.add('CAR-T')
         else:
             labs.add('Other')
-    if not labs:
-        return 'none'
-    return labs.pop() if len(labs) == 1 else 'Mixed'
+    return labs.pop() if len(labs) == 1 else 'Other'
 
 
 def heme_subtype(x):
@@ -222,12 +221,16 @@ def disease_group(x):
 
 
 def immuno_cat(x):
-    s = str(x).lower()
-    if 'cd20' in s:
+    s = str(x).lower().strip()
+    if s in {'nan', 'na', 'n/a', 'none', ''}:
+        return 'None'
+    if 'cd20' in s and 'hsct' not in s and 'car' not in s:
         return 'Anti-CD-20'
-    if 'car' in s:
+    if 'hsct' in s and 'cd20' not in s and 'car' not in s:
+        return 'HSCT'
+    if 'car' in s and 'cd20' not in s and 'hsct' not in s:
         return 'CAR-T'
-    return 'None'
+    return 'Other'
 
 
 def geno_cat(x):
@@ -348,13 +351,14 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['flag_malign'] = s.map(lambda x: parse_has(x, 'm'))
     df['flag_autoimm'] = s.map(lambda x: parse_has(x, 'a'))
     df['flag_transpl'] = s.map(lambda x: parse_has(x, 't'))
-    base = df[COL_BASE].astype(str).str.lower()
-    df['flag_cd20'] = base.str.contains('cd20')
-    df['flag_cart'] = base.str.contains('car')
-    df['flag_hsct'] = base.str.contains('hsct')
-    df['flag_immuno_none'] = ~(
-        df[['flag_cd20', 'flag_cart', 'flag_hsct']].any(axis=1)
-    ) | base.str.contains('none')
+    base = df[COL_BASE].astype(str).str.lower().str.strip()
+    df['flag_cd20'] = base.str.contains('cd20') & ~base.str.contains('hsct') & ~base.str.contains('car')
+    df['flag_cart'] = base.str.contains('car') & ~base.str.contains('cd20') & ~base.str.contains('hsct')
+    df['flag_hsct'] = base.str.contains('hsct') & ~base.str.contains('cd20') & ~base.str.contains('car')
+    df['flag_immuno_none'] = base.isin({'', 'nan', 'na', 'n/a', 'none'})
+    df['flag_immuno_other'] = ~(
+        df[['flag_cd20', 'flag_cart', 'flag_hsct', 'flag_immuno_none']].any(axis=1)
+    )
     df['flag_gc'] = df[COL_GC].map(parse_yn)
     vacc = df[COL_VACC].map(parse_vacc)
     df['vacc_yes'] = vacc.map(lambda x: x[0] == 'Yes')
@@ -375,7 +379,7 @@ add_flags_extended(COMBO)
 
 
 def baseline_stats() -> pd.DataFrame:
-    labels = ['CD20', 'CAR-T', 'HSCT', 'Other', 'none', 'Mixed']
+    labels = ['CD20', 'CAR-T', 'HSCT', 'Other', 'None']
     t = TOTAL[COL_BASE].map(group_immuno)
     m = MONO[COL_BASE].map(group_immuno)
     c = COMBO[COL_BASE].map(group_immuno)
@@ -660,6 +664,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
         ('Immunosuppressive treatment, n (%)', 'CAR-T'),
         ('Immunosuppressive treatment, n (%)', 'HSCT'),
+        ('Immunosuppressive treatment, n (%)', 'Other'),
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Glucocorticoid use, n (%)', ''),
         ('SARS-CoV-2 vaccination, n (%)', ''),
@@ -731,6 +736,7 @@ def build_table_b():
         ('Anti-CD20', 'flag_cd20'),
         ('CAR-T', 'flag_cart'),
         ('HSCT', 'flag_hsct'),
+        ('Other', 'flag_immuno_other'),
         ('None', 'flag_immuno_none'),
     ]
     for lbl, col in pairs:
@@ -772,9 +778,16 @@ def build_table_b():
     table_b.at[('Treatment setting\u00b9, n (%)', 'Hospital'), 'p-value'] = ''
     table_b.at[('Treatment setting\u00b9, n (%)', 'Outpatient'), 'p-value'] = ''
     table_b.at[('Treatment setting\u00b9, n (%)', ''), 'p-value'] = fmt_p(p_set)
+    vals = (
+        TOTAL.loc[TOTAL['flag_immuno_other'], COL_BASE]
+        .dropna()
+        .unique()
+    )
+    extra = '; '.join(str(v) for v in vals)
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
-        '1: Treatment setting where prolonged NMV-r was administered.'
+        '1: Treatment setting where prolonged NMV-r was administered.\n'
+        f'2: Other immunosuppressive treatment: {extra}.'
     )
     table_b.attrs['footnote'] = foot
     table_b_raw.attrs['footnote'] = foot

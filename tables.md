@@ -35,10 +35,11 @@
 |                                    | Autoimmune               | 11 (10.6%) | 4 (12.1%)     | 4 (7.0%)      | 0.458     | Fisher         |
 |                                    | Transplantation          | 4 (3.8%)   | 3 (9.1%)      | 1 (1.8%)      | 0.138     | Fisher         |
 | Immunosuppressive treatment, n (%) |                          |            |               |               |           |                |
-|                                    | Anti-CD20                | 79 (76.0%) | 24 (72.7%)    | 47 (82.5%)    | 0.411     | Chi2 df=1      |
-|                                    | None                     | 19 (18.3%) | 7 (21.2%)     | 6 (10.5%)     | 0.216     | Fisher         |
-|                                    | HSCT                     | 4 (3.8%)   | 3 (9.1%)      | 1 (1.8%)      | 0.138     | Fisher         |
-|                                    | CAR-T                    | 4 (3.8%)   | 0 (0.0%)      | 4 (7.0%)      | 0.292     | Fisher         |
+|                                    | Anti-CD20                | 77 (74.0%) | 23 (69.7%)    | 46 (80.7%)    | 0.352     | Chi2 df=1      |
+|                                    | Other                    | 15 (14.4%) | 6 (18.2%)     | 5 (8.8%)      | 0.202     | Fisher         |
+|                                    | None                     | 6 (5.8%)   | 2 (6.1%)      | 2 (3.5%)      | 0.622     | Fisher         |
+|                                    | HSCT                     | 3 (2.9%)   | 2 (6.1%)      | 1 (1.8%)      | 0.552     |                |
+|                                    | CAR-T                    | 3 (2.9%)   | 0 (0.0%)      | 3 (5.3%)      | 0.296     | Fisher         |
 | Glucocorticoid use, n (%)          |                          | 47 (45.2%) | 13 (39.4%)    | 29 (50.9%)    | 0.405     | Chi2 df=1      |
 | SARS-CoV-2 vaccination, n (%)      |                          | 95 (91.3%) | 30 (90.9%)    | 53 (93.0%)    | 0.704     | Fisher         |
 | Mean Vaccination doses, n (range)  |                          | 3.3 (2-8)  | 3.3 (2-6)     | 3.3 (2-8)     | 0.651     | Mann-Whitney-U |
@@ -49,6 +50,7 @@
 
 - NMV-r, nirmatrelvir-ritonavir.
 1: Treatment setting where prolonged NMV-r was administered.
+2: Other immunosuppressive treatment: Other; HSCT, CD20; CD20, CAR-T.
 
 # Table C. Detailed Patient Characteristics
 
