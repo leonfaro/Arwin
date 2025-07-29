@@ -129,7 +129,10 @@ def parse_vacc(x: str):
 
 
 def group_immuno(x: str) -> str:
-    tags = re.split(r'[,\s]+', str(x).lower().strip())
+    s = str(x).lower().strip()
+    if s in {'nan', 'na', 'n/a', 'none', ''}:
+        return 'None'
+    tags = re.split(r'[,\s]+', s)
     labs = set()
     for t in tags:
         if not t:
@@ -140,12 +143,8 @@ def group_immuno(x: str) -> str:
             labs.add('HSCT')
         elif 'car' in t and 'cd20' not in t and 'hsct' not in t:
             labs.add('CAR-T')
-        elif t in {'na', 'n/a', 'nan', ''}:
-            pass
         else:
             labs.add('Other')
-    if not labs:
-        return 'None'
     return labs.pop() if len(labs) == 1 else 'Other'
 
 
@@ -219,7 +218,7 @@ def disease_group(x):
 
 def immuno_cat(x):
     s = str(x).lower().strip()
-    if not s or s in {'nan', 'na', 'n/a'}:
+    if s in {'nan', 'na', 'n/a', 'none', ''}:
         return 'None'
     if 'cd20' in s and 'hsct' not in s and 'car' not in s:
         return 'Anti-CD-20'
@@ -352,7 +351,7 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['flag_cd20'] = base.str.contains('cd20') & ~base.str.contains('hsct') & ~base.str.contains('car')
     df['flag_cart'] = base.str.contains('car') & ~base.str.contains('cd20') & ~base.str.contains('hsct')
     df['flag_hsct'] = base.str.contains('hsct') & ~base.str.contains('cd20') & ~base.str.contains('car')
-    df['flag_immuno_none'] = base.isin({'', 'nan', 'na', 'n/a'})
+    df['flag_immuno_none'] = base.isin({'', 'nan', 'na', 'n/a', 'none'})
     df['flag_immuno_other'] = ~(
         df[['flag_cd20', 'flag_cart', 'flag_hsct', 'flag_immuno_none']].any(axis=1)
     )
