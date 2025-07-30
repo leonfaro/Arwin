@@ -22,14 +22,11 @@ index = pd.MultiIndex.from_tuples(
         ('Haematological malignancy, n (%)', 'MM'),
         ('Haematological malignancy, n (%)', 'Mixed'),
         ('Autoimmune disease, n (%)', ''),
-        ('Autoimmune disease, n (%)', 'MCTD'),
         ('Autoimmune disease, n (%)', 'RA'),
-        ('Autoimmune disease, n (%)', 'CREST'),
         ('Autoimmune disease, n (%)', 'MS'),
         ('Autoimmune disease, n (%)', 'SSc'),
         ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
-        ('Autoimmune disease, n (%)', 'Glomerulonephritis'),
-        ('Autoimmune disease, n (%)', 'NMDA-encephalitis'),
+        ('Autoimmune disease, n (%)', 'Other\u00b2'),
         ('Transplantation, n (%)', ''),
         ('Transplantation, n (%)', 'LT'),
         ('Transplantation, n (%)', 'KT'),
@@ -88,21 +85,19 @@ def build_table_c():
             COMBO['heme'] == db_lab,
         )
     labs = [
-        'MCTD',
         'RA',
-        'CREST',
         'MS',
         'SSc',
         'Colitis ulcerosa',
-        'Glomerulonephritis',
-        'NMDA-encephalitis',
+        'Other\u00b2',
     ]
     for lab in labs:
+        db_lab = 'Other' if lab == 'Other\u00b2' else lab
         add_rate(
             ('Autoimmune disease, n (%)', lab),
-            TOTAL['auto'] == lab,
-            MONO['auto'] == lab,
-            COMBO['auto'] == lab,
+            TOTAL['auto'] == db_lab,
+            MONO['auto'] == db_lab,
+            COMBO['auto'] == db_lab,
         )
     for lab in ['LT', 'KT']:
         add_rate(
@@ -145,7 +140,8 @@ def build_table_c():
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
     table_c.attrs['footnote'] = (
-        '1: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
+        '1: Other includes MCL, LPL, MALT lymphoma and similar entities.'
+        '\n2: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
         'NMDA-encephalitis, SSc, LT, KT, CU.'
     )
     return table_c

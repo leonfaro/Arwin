@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
-FILE_PATH = 'data characteristics v10.xlsx'
+FILE_PATH = 'data_characteristics_v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
 COL_THERAPY = (
@@ -37,13 +37,16 @@ COMBO = load_sheet('subgroup combo', 'subgroup combo, n=57')
 TOTAL_N = len(TOTAL)
 MONO_N = len(MONO)
 COMBO_N = len(COMBO)
-ABBREV_DF = pd.read_excel(
-    FILE_PATH,
-    sheet_name='primary cohort, n=104',
-    usecols='H:I',
-    header=106,
-).dropna(how='all')
-ABBREV_DF.columns = ['Abbreviation', 'Full Form']
+try:
+    ABBREV_DF = pd.read_excel(
+        FILE_PATH,
+        sheet_name='primary cohort, n=104',
+        usecols='H:I',
+        header=106,
+    ).dropna(how='all')
+    ABBREV_DF.columns = ['Abbreviation', 'Full Form']
+except Exception:
+    ABBREV_DF = pd.DataFrame(columns=['Abbreviation', 'Full Form'])
 for _df in (TOTAL, MONO, COMBO):
     if 'baseline therapy cohort' in _df.columns and COL_BASE not in _df.columns:
         _df.rename(columns={'baseline therapy cohort': COL_BASE}, inplace=True)
@@ -179,12 +182,17 @@ def heme_subtype(x):
 
 def auto_subtype(x):
     s = str(x).lower()
-    if 'mctd' in s:
-        return 'MCTD'
+    if (
+        'anca' in s
+        or 'mcd' in s
+        or 'mctd' in s
+        or 'nmda' in s
+        or 'crest' in s
+        or s.strip() in {'ssc, lt', 'kt, cu'}
+    ):
+        return 'Other'
     if 'rheumatoid' in s or re.search(r'\bra\b', s):
         return 'RA'
-    if 'crest' in s:
-        return 'CREST'
     if 'ms' in s and 'mcl' not in s:
         return 'MS'
     if 'systemic sclerosis' in s or re.search(r'\bssc\b', s):
@@ -193,8 +201,6 @@ def auto_subtype(x):
         return 'Colitis ulcerosa'
     if 'glomerulonephritis' in s:
         return 'Glomerulonephritis'
-    if 'nmda' in s:
-        return 'NMDA-encephalitis'
     return None
 
 
@@ -837,14 +843,11 @@ index = pd.MultiIndex.from_tuples(
         ('Haematological malignancy, n (%)', 'MM'),
         ('Haematological malignancy, n (%)', 'Mixed'),
         ('Autoimmune disease, n (%)', ''),
-        ('Autoimmune disease, n (%)', 'MCTD'),
         ('Autoimmune disease, n (%)', 'RA'),
-        ('Autoimmune disease, n (%)', 'CREST'),
         ('Autoimmune disease, n (%)', 'MS'),
         ('Autoimmune disease, n (%)', 'SSc'),
         ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
-        ('Autoimmune disease, n (%)', 'Glomerulonephritis'),
-        ('Autoimmune disease, n (%)', 'NMDA-encephalitis'),
+        ('Autoimmune disease, n (%)', 'Other\u00b2'),
         ('Transplantation, n (%)', ''),
         ('Transplantation, n (%)', 'LT'),
         ('Transplantation, n (%)', 'KT'),
@@ -903,21 +906,19 @@ def build_table_c():
             COMBO['heme'] == db_lab,
         )
     labs = [
-        'MCTD',
         'RA',
-        'CREST',
         'MS',
         'SSc',
         'Colitis ulcerosa',
-        'Glomerulonephritis',
-        'NMDA-encephalitis',
+        'Other\u00b2',
     ]
     for lab in labs:
+        db_lab = 'Other' if lab == 'Other\u00b2' else lab
         add_rate(
             ('Autoimmune disease, n (%)', lab),
-            TOTAL['auto'] == lab,
-            MONO['auto'] == lab,
-            COMBO['auto'] == lab,
+            TOTAL['auto'] == db_lab,
+            MONO['auto'] == db_lab,
+            COMBO['auto'] == db_lab,
         )
     for lab in ['LT', 'KT']:
         add_rate(
@@ -960,7 +961,8 @@ def build_table_c():
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
     table_c.attrs['footnote'] = (
-        '1: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
+        '1: Other includes MCL, LPL, MALT lymphoma and similar entities.'
+        '\n2: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
         'NMDA-encephalitis, SSc, LT, KT, CU.'
     )
     return table_c
