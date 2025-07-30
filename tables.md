@@ -37,7 +37,7 @@
 |                                    | Transplantation          | 4 (3.8%)   | 3 (9.1%)      | 1 (1.8%)      | 0.138     |
 | Immunosuppressive treatment, n (%) |                          |            |               |               |           |
 |                                    | Anti-CD20                | 77 (74.0%) | 23 (69.7%)    | 46 (80.7%)    | 0.352     |
-|                                    | Other                    | 15 (14.4%) | 6 (18.2%)     | 5 (8.8%)      | 0.202     |
+|                                    | Other²                   | 15 (14.4%) | 6 (18.2%)     | 5 (8.8%)      | 0.202     |
 |                                    | None                     | 6 (5.8%)   | 2 (6.1%)      | 2 (3.5%)      | 0.622     |
 |                                    | HSCT                     | 3 (2.9%)   | 2 (6.1%)      | 1 (1.8%)      | 0.552     |
 |                                    | CAR-T                    | 3 (2.9%)   | 0 (0.0%)      | 3 (5.3%)      | 0.296     |
@@ -51,7 +51,7 @@
 
 - NMV-r, nirmatrelvir-ritonavir.    
 1: Treatment setting where prolonged NMV-r was administered.    
-2: Other immunosuppressive treatment: Other; HSCT, CD20; CD20, CAR-T.  
+2: Other immunosuppressive treatment includes: Other; HSCT, CD20; CD20, CAR-T.  
 
 \newpage
 # Table C. Detailed Patient Characteristics
