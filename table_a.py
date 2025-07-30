@@ -6,7 +6,8 @@ from data_preprocessing import (
     COL_EXT,
     COL_OTHER,
     COL_THERAPY,
-
+    normalize_text,
+    NONE_SET,
     parse_ext,
     fmt_pct,
     fmt_p,
@@ -71,9 +72,9 @@ def build_table_a():
         )
     add_rate(
         ('First-line therapy\u00b9, n (%)', 'None'),
-        TOTAL[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
-        MONO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
-        COMBO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        TOTAL[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        MONO[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        COMBO[COL_OTHER].map(normalize_text).isin(NONE_SET),
     )
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
@@ -179,9 +180,9 @@ def build_table_a_raw():
         add(('First-line therapy\u00b9, n', lbl), TOTAL[col], MONO[col], COMBO[col])
     add(
         ('First-line therapy\u00b9, n', 'None'),
-        TOTAL[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
-        MONO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
-        COMBO[COL_OTHER].astype(str).str.lower().str.strip().eq('none'),
+        TOTAL[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        MONO[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        COMBO[COL_OTHER].map(normalize_text).isin(NONE_SET),
     )
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)

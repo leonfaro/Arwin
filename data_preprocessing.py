@@ -2,6 +2,13 @@ import pandas as pd
 import numpy as np
 import re
 from scipy.stats import chi2_contingency, fisher_exact, mannwhitneyu, shapiro, ttest_ind
+
+
+def normalize_text(x):
+    return str(x).lower().strip()
+
+
+NONE_SET = {"none", "nan", "n/a", "na", ""}
 FILE_PATH = 'data_characteristics_v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
@@ -53,13 +60,11 @@ for _df in (TOTAL, MONO, COMBO):
     for c in list(_df.columns):
         if c.startswith('2nd line extended Paxlovid treatment'):
             _df.rename(columns={c: COL_EXT}, inplace=True)
-    s = _df[COL_OTHER].astype(str).str.lower()
-    s = s.str.replace('n/a', '', regex=False)
-    s = s.replace({'na': '', 'nan': ''})
+    s = _df[COL_OTHER].map(normalize_text)
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
     _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
-    nn = s.str.strip().ne('none') & s.str.contains('[a-z]', na=False)
+    nn = ~s.isin(NONE_SET) & s.str.contains('[a-z]', na=False)
     _df['flag_other'] = nn & ~(_df['flag_rdv'] | _df['flag_mpv'])
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
@@ -90,8 +95,8 @@ def cont_test(v1, v2):
 
 
 def parse_yn(x):
-    s = str(x).lower().strip()
-    if s in {"nan", "na", "n/a", ""}:
+    s = normalize_text(x)
+    if s in NONE_SET:
         return np.nan
     if s.startswith("y"):
         return True
@@ -101,15 +106,15 @@ def parse_yn(x):
 
 
 def parse_has(x, ch):
-    s = str(x).lower().strip()
-    if s in {"nan", "na", "n/a", ""}:
+    s = normalize_text(x)
+    if s in NONE_SET:
         return np.nan
     return ch in s
 
 
 def parse_female(x):
-    s = str(x).lower().strip()
-    if s in {"nan", "na", "n/a", ""}:
+    s = normalize_text(x)
+    if s in NONE_SET:
         return np.nan
     if s.startswith("f"):
         return True
@@ -119,10 +124,10 @@ def parse_female(x):
 
 
 def parse_vacc(x: str):
-    s = str(x).lower().strip()
+    s = normalize_text(x)
     m = pd.Series(s).str.extract(r'(\d+)')[0]
     dose = float(m.iloc[0]) if m.notna().any() else np.nan
-    if s in {'nan', 'na', 'n/a', ''}:
+    if s in NONE_SET:
         return 'Unknown', dose
     if s.startswith('y'):
         return 'Yes', dose
@@ -132,8 +137,8 @@ def parse_vacc(x: str):
 
 
 def group_immuno(x: str) -> str:
-    s = str(x).lower().strip()
-    if s in {'nan', 'na', 'n/a', 'none', ''}:
+    s = normalize_text(x)
+    if s in NONE_SET:
         return 'None'
     tags = re.split(r'[,\s]+', s)
     labs = set()
@@ -214,8 +219,8 @@ def transp_subtype(x):
 
 
 def disease_group(x):
-    s = str(x).lower().strip()
-    if s in {'nan', 'na', 'n/a', ''}:
+    s = normalize_text(x)
+    if s in NONE_SET:
         return None
     if 'm' in s:
         return 'Haematological malignancy'
@@ -227,8 +232,8 @@ def disease_group(x):
 
 
 def immuno_cat(x):
-    s = str(x).lower().strip()
-    if s in {'nan', 'na', 'n/a', 'none', ''}:
+    s = normalize_text(x)
+    if s in NONE_SET:
         return 'None'
     if 'cd20' in s and 'hsct' not in s and 'car' not in s:
         return 'Anti-CD-20'
@@ -264,10 +269,10 @@ def geno_cat(x):
 
 
 def ae_cat(x):
-    s = str(x).lower()
+    s = normalize_text(x)
     if 'thrombocytopenia' in s:
         return 'Thrombocytopenia'
-    if not s or s in {'none', 'n', 'nan'}:
+    if not s or s in NONE_SET or s == 'n':
         return 'None'
     return 'Other'
 
@@ -357,11 +362,11 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['flag_malign'] = s.map(lambda x: parse_has(x, 'm'))
     df['flag_autoimm'] = s.map(lambda x: parse_has(x, 'a'))
     df['flag_transpl'] = s.map(lambda x: parse_has(x, 't'))
-    base = df[COL_BASE].astype(str).str.lower().str.strip()
+    base = df[COL_BASE].map(normalize_text)
     df['flag_cd20'] = base.str.contains('cd20') & ~base.str.contains('hsct') & ~base.str.contains('car')
     df['flag_cart'] = base.str.contains('car') & ~base.str.contains('cd20') & ~base.str.contains('hsct')
     df['flag_hsct'] = base.str.contains('hsct') & ~base.str.contains('cd20') & ~base.str.contains('car')
-    df['flag_immuno_none'] = base.isin({'', 'nan', 'na', 'n/a', 'none'})
+    df['flag_immuno_none'] = base.isin(NONE_SET)
     df['flag_immuno_other'] = ~(
         df[['flag_cd20', 'flag_cart', 'flag_hsct', 'flag_immuno_none']].any(axis=1)
     )
