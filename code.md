@@ -664,7 +664,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
         ('Immunosuppressive treatment, n (%)', 'CAR-T'),
         ('Immunosuppressive treatment, n (%)', 'HSCT'),
-        ('Immunosuppressive treatment, n (%)', 'Other'),
+        ('Immunosuppressive treatment, n (%)', 'Other\u00b2'),
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Glucocorticoid use, n (%)', ''),
         ('SARS-CoV-2 vaccination, n (%)', ''),
@@ -736,7 +736,7 @@ def build_table_b():
         ('Anti-CD20', 'flag_cd20'),
         ('CAR-T', 'flag_cart'),
         ('HSCT', 'flag_hsct'),
-        ('Other', 'flag_immuno_other'),
+        ('Other\u00b2', 'flag_immuno_other'),
         ('None', 'flag_immuno_none'),
     ]
     for lbl, col in pairs:
@@ -787,7 +787,7 @@ def build_table_b():
     foot = (
         '- NMV-r, nirmatrelvir-ritonavir.\n'
         '1: Treatment setting where prolonged NMV-r was administered.\n'
-        f'2: Other immunosuppressive treatment: {extra}.'
+        f'2: Other immunosuppressive treatment includes: {extra}.'
     )
     table_b.attrs['footnote'] = foot
     table_b_raw.attrs['footnote'] = foot
