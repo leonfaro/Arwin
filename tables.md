@@ -67,6 +67,7 @@ Of course. Here are the complete tables with the requested modifications made to
 | Autoimmune disease, n (%)                               |                  |             |               |               |           |
 |                                                         | Other²           | 7 (6.7%)    | 2 (6.1%)      | 3 (5.3%)      | 1.000     |
 |                                                         | RA               | 2 (1.9%)    | 2 (6.1%)      | 0 (0.0%)      | 0.132     |
+|                                                         | MS               | 2 (1.9%)    | 0 (0.0%)      | 1 (1.8%)      | 0.132     |
 | Transplantation, n (%)                                  |                  |             |               |               |           |
 |                                                         | LT               | 2 (1.9%)    | 2 (6.1%)      | 0 (0.0%)      | 0.132     |
 |                                                         | KT               | 2 (1.9%)    | 1 (3.0%)      | 1 (1.8%)      | 1.000     |
