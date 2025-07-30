@@ -22,14 +22,11 @@ index = pd.MultiIndex.from_tuples(
         ('Haematological malignancy, n (%)', 'MM'),
         ('Haematological malignancy, n (%)', 'Mixed'),
         ('Autoimmune disease, n (%)', ''),
-        ('Autoimmune disease, n (%)', 'MCTD'),
         ('Autoimmune disease, n (%)', 'RA'),
-        ('Autoimmune disease, n (%)', 'CREST'),
         ('Autoimmune disease, n (%)', 'MS'),
         ('Autoimmune disease, n (%)', 'SSc'),
         ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
-        ('Autoimmune disease, n (%)', 'Glomerulonephritis'),
-        ('Autoimmune disease, n (%)', 'NMDA-encephalitis'),
+        ('Autoimmune disease, n (%)', 'Other\u00b9'),
         ('Transplantation, n (%)', ''),
         ('Transplantation, n (%)', 'LT'),
         ('Transplantation, n (%)', 'KT'),
@@ -88,21 +85,19 @@ def build_table_c():
             COMBO['heme'] == db_lab,
         )
     labs = [
-        'MCTD',
         'RA',
-        'CREST',
         'MS',
         'SSc',
         'Colitis ulcerosa',
-        'Glomerulonephritis',
-        'NMDA-encephalitis',
+        'Other\u00b9',
     ]
     for lab in labs:
+        db_lab = 'Other' if lab == 'Other\u00b9' else lab
         add_rate(
             ('Autoimmune disease, n (%)', lab),
-            TOTAL['auto'] == lab,
-            MONO['auto'] == lab,
-            COMBO['auto'] == lab,
+            TOTAL['auto'] == db_lab,
+            MONO['auto'] == db_lab,
+            COMBO['auto'] == db_lab,
         )
     for lab in ['LT', 'KT']:
         add_rate(

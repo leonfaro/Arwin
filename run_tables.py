@@ -166,14 +166,11 @@ def tests_table_c():
             len(data_preprocessing.MONO) - int((data_preprocessing.MONO["heme"] == lab).sum()),
         )
     for lab in [
-        "MCTD",
         "RA",
-        "CREST",
         "MS",
         "SSc",
         "Colitis ulcerosa",
-        "Glomerulonephritis",
-        "NMDA-encephalitis",
+        "Other",
     ]:
         info[("Autoimmune disease, n (%)", lab)] = chi_or_fisher_test(
             int((data_preprocessing.COMBO["auto"] == lab).sum()),
