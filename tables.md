@@ -8,7 +8,7 @@
 |                            | Remdesivir                  | 36 (34.6%) | 13 (39.4%)    | 21 (36.8%)    | 0.988     |
 |                            | Standard 5-day Paxlovid     | 31 (29.8%) | 5 (15.2%)     | 25 (43.9%)    | 0.011     |
 |                            | Molnupiravir                | 14 (13.5%) | 5 (15.2%)     | 9 (15.8%)     | 1.000     |
-|                            | Other antivirals            | 11 (10.6%) | 4 (12.1%)     | 7 (12.3%)     | 1.000     |
+|                            | Other antivirals            | 0 (0.0%)   | 0 (0.0%)      | 0 (0.0%)      |           |
 | Last line therapy², n (%)  |                             |            |               |               | <0.001    |
 |                            | Combination therapy         | 63 (60.6%) | 0 (0.0%)      | 57 (100.0%)   |           |
 |                            | Monotherapy                 | 41 (39.4%) | 33 (100.0%)   | 0 (0.0%)      |           |
@@ -37,7 +37,7 @@
 |                                    | Transplantation          | 4 (3.8%)   | 3 (9.1%)      | 1 (1.8%)      | 0.138     |
 | Immunosuppressive treatment, n (%) |                          |            |               |               |           |
 |                                    | Anti-CD20                | 77 (74.0%) | 23 (69.7%)    | 46 (80.7%)    | 0.352     |
-|                                    | Other²                   | 15 (14.4%) | 6 (18.2%)     | 5 (8.8%)      | 0.202     |
+|                                    | Other²                   | 13 (12.5%) | 5 (15.2%)     | 4 (7.0%)      | 0.279     |
 |                                    | None                     | 6 (5.8%)   | 2 (6.1%)      | 2 (3.5%)      | 0.622     |
 |                                    | HSCT                     | 3 (2.9%)   | 2 (6.1%)      | 1 (1.8%)      | 0.552     |
 |                                    | CAR-T                    | 3 (2.9%)   | 0 (0.0%)      | 3 (5.3%)      | 0.296     |
@@ -51,7 +51,7 @@
 
 - NMV-r, nirmatrelvir-ritonavir.    
 1: Treatment setting where prolonged NMV-r was administered.    
-2: Other immunosuppressive treatment includes: Other; HSCT, CD20; CD20, CAR-T.  
+2: Other immunosuppressive treatment includes: Other.  
 
 \newpage
 # Table C. Detailed Patient Characteristics

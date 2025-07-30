@@ -9,6 +9,18 @@ def normalize_text(x):
 
 
 NONE_SET = {"none", "nan", "n/a", "na", ""}
+OTHER_AV_NAMES = ["azd7442", "favipiravir", "entecavir"]
+HEME_SYNONYMES = {
+    "non-hodgkin lymphoma": "NHL",
+    "non hodgkin lymphoma": "NHL",
+    "follicular": "FL",
+    "fcl": "FL",
+}
+AUTO_SYNONYMES = {
+    "rheum. arthritis": "RA",
+    "rheumatoid arthritis": "RA",
+    "ra": "RA",
+}
 FILE_PATH = 'data_characteristics_v10.xlsx'
 COL_OTHER = '1st line treatment any other antiviral drugs \n(days) [dosage]'
 COL_NMV_STD = '1st line Paxlovid standard duration treatment courses \n(n)'
@@ -61,11 +73,14 @@ for _df in (TOTAL, MONO, COMBO):
         if c.startswith('2nd line extended Paxlovid treatment'):
             _df.rename(columns={c: COL_EXT}, inplace=True)
     s = _df[COL_OTHER].map(normalize_text)
+    s_clean = s.str.replace(r'\s+', '', regex=True)
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
     _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
-    nn = ~s.isin(NONE_SET) & s.str.contains('[a-z]', na=False)
-    _df['flag_other'] = nn & ~(_df['flag_rdv'] | _df['flag_mpv'])
+    mask = pd.Series(False, index=_df.index)
+    for name in OTHER_AV_NAMES:
+        mask |= s_clean.str.contains(name.replace(' ', ''), na=False)
+    _df['flag_other'] = mask
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
 
@@ -136,30 +151,13 @@ def parse_vacc(x: str):
     return 'Unknown', dose
 
 
-def group_immuno(x: str) -> str:
-    s = normalize_text(x)
-    if s in NONE_SET:
-        return 'None'
-    tags = re.split(r'[,\s]+', s)
-    labs = set()
-    for t in tags:
-        if not t:
-            continue
-        if 'cd20' in t and 'hsct' not in t and 'car' not in t:
-            labs.add('CD20')
-        elif 'hsct' in t and 'cd20' not in t and 'car' not in t:
-            labs.add('HSCT')
-        elif 'car' in t and 'cd20' not in t and 'hsct' not in t:
-            labs.add('CAR-T')
-        else:
-            labs.add('Other')
-    return labs.pop() if len(labs) == 1 else 'Other'
-
-
 def heme_subtype(x):
-    s = str(x).lower()
+    s = normalize_text(x).replace('-', ' ')
     if ',' in s or '+' in s:
         return 'Mixed'
+    for k, v in HEME_SYNONYMES.items():
+        if k in s:
+            return v
     if 'dlbcl' in s:
         return 'DLBCL'
     if 'all' in s:
@@ -176,8 +174,6 @@ def heme_subtype(x):
         return 'Other'
     if 'mm' in s or 'pcl' in s or 'myeloma' in s:
         return 'MM'
-    if ',' in s or '+' in s:
-        return 'Mixed'
     if s.strip() == 'nos':
         return 'NOS'
     if s.strip():
@@ -186,7 +182,7 @@ def heme_subtype(x):
 
 
 def auto_subtype(x):
-    s = str(x).lower()
+    s = normalize_text(x)
     if (
         'anca' in s
         or 'mcd' in s
@@ -196,8 +192,9 @@ def auto_subtype(x):
         or s.strip() in {'ssc, lt', 'kt, cu'}
     ):
         return 'Other'
-    if 'rheumatoid' in s or re.search(r'\bra\b', s):
-        return 'RA'
+    for k, v in AUTO_SYNONYMES.items():
+        if k in s:
+            return v
     if 'ms' in s and 'mcl' not in s:
         return 'MS'
     if 'systemic sclerosis' in s or re.search(r'\bssc\b', s):
@@ -231,16 +228,21 @@ def disease_group(x):
     return None
 
 
-def immuno_cat(x):
+def classify_immuno(x):
     s = normalize_text(x)
     if s in NONE_SET:
         return 'None'
-    if 'cd20' in s and 'hsct' not in s and 'car' not in s:
-        return 'Anti-CD-20'
-    if 'hsct' in s and 'cd20' not in s and 'car' not in s:
-        return 'HSCT'
-    if 'car' in s and 'cd20' not in s and 'hsct' not in s:
+    has_cd20 = 'cd20' in s
+    has_car = 'car' in s
+    has_hsct = 'hsct' in s
+    if sum([has_cd20, has_car, has_hsct]) > 1:
+        return 'Mixed'
+    if has_cd20:
+        return 'Anti-CD20'
+    if has_car:
         return 'CAR-T'
+    if has_hsct:
+        return 'HSCT'
     return 'Other'
 
 
@@ -357,19 +359,17 @@ def add_flags_extended(df: pd.DataFrame) -> pd.DataFrame:
     df['auto'] = dis.map(auto_subtype)
     df['trans'] = dis.map(transp_subtype)
     df['group'] = df[COL_DIS].map(disease_group)
-    df['immu'] = df[COL_BASE].map(immuno_cat)
+    df['immu'] = df[COL_BASE].map(classify_immuno)
     s = df[COL_DIS]
     df['flag_malign'] = s.map(lambda x: parse_has(x, 'm'))
     df['flag_autoimm'] = s.map(lambda x: parse_has(x, 'a'))
     df['flag_transpl'] = s.map(lambda x: parse_has(x, 't'))
-    base = df[COL_BASE].map(normalize_text)
-    df['flag_cd20'] = base.str.contains('cd20') & ~base.str.contains('hsct') & ~base.str.contains('car')
-    df['flag_cart'] = base.str.contains('car') & ~base.str.contains('cd20') & ~base.str.contains('hsct')
-    df['flag_hsct'] = base.str.contains('hsct') & ~base.str.contains('cd20') & ~base.str.contains('car')
-    df['flag_immuno_none'] = base.isin(NONE_SET)
-    df['flag_immuno_other'] = ~(
-        df[['flag_cd20', 'flag_cart', 'flag_hsct', 'flag_immuno_none']].any(axis=1)
-    )
+    df['flag_cd20'] = df['immu'] == 'Anti-CD20'
+    df['flag_cart'] = df['immu'] == 'CAR-T'
+    df['flag_hsct'] = df['immu'] == 'HSCT'
+    df['flag_immuno_none'] = df['immu'] == 'None'
+    df['flag_immuno_mixed'] = df['immu'] == 'Mixed'
+    df['flag_immuno_other'] = df['immu'] == 'Other'
     df['flag_gc'] = df[COL_GC].map(parse_yn)
     vacc = df[COL_VACC].map(parse_vacc)
     df['vacc_yes'] = vacc.map(lambda x: x[0] == 'Yes')
@@ -390,10 +390,10 @@ add_flags_extended(COMBO)
 
 
 def baseline_stats() -> pd.DataFrame:
-    labels = ['CD20', 'CAR-T', 'HSCT', 'Other', 'None']
-    t = TOTAL[COL_BASE].map(group_immuno)
-    m = MONO[COL_BASE].map(group_immuno)
-    c = COMBO[COL_BASE].map(group_immuno)
+    labels = ['Anti-CD20', 'CAR-T', 'HSCT', 'Mixed', 'Other', 'None']
+    t = TOTAL[COL_BASE].map(classify_immuno)
+    m = MONO[COL_BASE].map(classify_immuno)
+    c = COMBO[COL_BASE].map(classify_immuno)
     df = pd.DataFrame(index=labels, columns=[
         'Total n',
         'Total %',
