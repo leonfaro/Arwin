@@ -78,10 +78,13 @@ for _df in (TOTAL, MONO, COMBO):
     _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
     _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
-    mask = pd.Series(False, index=_df.index)
+    mask_names = pd.Series(False, index=_df.index)
     for name in OTHER_AV_NAMES:
-        mask |= s_clean.str.contains(name.replace(' ', ''), na=False)
-    _df['flag_other'] = mask
+        mask_names |= s_clean.str.contains(name.replace(' ', ''), na=False)
+    mask_regex = s.str.contains(r'(tix|cilga|cas|imd|sot|beb|ens|ribavi|ivig|vibro|/|-)', regex=True)
+    base = ~s.isin(NONE_SET) & ~_df['flag_rdv'] & ~_df['flag_mpv'] & ~_df['flag_pax5d']
+    _df['flag_other'] = base & (mask_names | mask_regex)
+    _df['flag_none'] = ~(_df[['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']].any(axis=1))
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
 
@@ -470,12 +473,12 @@ def build_table_a():
         fill_rate(t_x, row, st, sm, sc, blank=False)
 
     labels = [
-        'Standard 5-day Paxlovid',
         'Remdesivir',
         'Molnupiravir',
+        'Standard 5-day Paxlovid',
         'Other antivirals',
     ]
-    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    cols = ['flag_rdv', 'flag_mpv', 'flag_pax5d', 'flag_other']
     for lbl, col in zip(labels, cols):
         add_rate(
             ('First-line therapy\u00b9, n (%)', lbl),
@@ -485,9 +488,9 @@ def build_table_a():
         )
     add_rate(
         ('First-line therapy\u00b9, n (%)', 'None'),
-        TOTAL[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        MONO[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        COMBO[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        TOTAL['flag_none'],
+        MONO['flag_none'],
+        COMBO['flag_none'],
     )
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
@@ -583,19 +586,19 @@ def build_table_a_raw():
             raw.at[row, 'p-value'] = p
 
     labels = [
-        'Standard 5-day Paxlovid',
         'Remdesivir',
         'Molnupiravir',
+        'Standard 5-day Paxlovid',
         'Other antivirals',
     ]
-    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    cols = ['flag_rdv', 'flag_mpv', 'flag_pax5d', 'flag_other']
     for lbl, col in zip(labels, cols):
         add(('First-line therapy\u00b9, n', lbl), TOTAL[col], MONO[col], COMBO[col])
     add(
         ('First-line therapy\u00b9, n', 'None'),
-        TOTAL[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        MONO[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        COMBO[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        TOTAL['flag_none'],
+        MONO['flag_none'],
+        COMBO['flag_none'],
     )
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)

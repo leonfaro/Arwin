@@ -37,12 +37,12 @@ def tests_table_a():
     days_c, courses_c = data_preprocessing.parse_ext(data_preprocessing.COMBO[data_preprocessing.COL_EXT])
     info = {}
     labels = [
-        "Standard 5-day Paxlovid",
         "Remdesivir",
         "Molnupiravir",
+        "Standard 5-day Paxlovid",
         "Other antivirals",
     ]
-    cols = ["flag_pax5d", "flag_rdv", "flag_mpv", "flag_other"]
+    cols = ["flag_rdv", "flag_mpv", "flag_pax5d", "flag_other"]
     for lbl, col in zip(labels, cols):
         info[("First-line therapy\u00b9, n (%)", lbl)] = chi_or_fisher_test(
             int((data_preprocessing.COMBO[col]).sum()),
@@ -50,8 +50,8 @@ def tests_table_a():
             int((data_preprocessing.MONO[col]).sum()),
             len(data_preprocessing.MONO) - int((data_preprocessing.MONO[col]).sum()),
         )
-    fl_none_m = data_preprocessing.MONO[data_preprocessing.COL_OTHER].astype(str).str.lower().str.strip().eq("none")
-    fl_none_c = data_preprocessing.COMBO[data_preprocessing.COL_OTHER].astype(str).str.lower().str.strip().eq("none")
+    fl_none_m = data_preprocessing.MONO["flag_none"]
+    fl_none_c = data_preprocessing.COMBO["flag_none"]
     info[("First-line therapy\u00b9, n (%)", "None")] = chi_or_fisher_test(
         int(fl_none_c.sum()),
         len(fl_none_c) - int(fl_none_c.sum()),
