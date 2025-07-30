@@ -23,6 +23,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
         ('Immunosuppressive treatment, n (%)', 'CAR-T'),
         ('Immunosuppressive treatment, n (%)', 'HSCT'),
+        ('Immunosuppressive treatment, n (%)', 'Mixed'),
         ('Immunosuppressive treatment, n (%)', 'Other\u00b2'),
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Glucocorticoid use, n (%)', ''),
@@ -95,6 +96,7 @@ def build_table_b():
         ('Anti-CD20', 'flag_cd20'),
         ('CAR-T', 'flag_cart'),
         ('HSCT', 'flag_hsct'),
+        ('Mixed', 'flag_immuno_mixed'),
         ('Other\u00b2', 'flag_immuno_other'),
         ('None', 'flag_immuno_none'),
     ]

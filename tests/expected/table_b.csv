@@ -1,0 +1,22 @@
+Category,Subcategory,Total,Monotherapy,Combination,p-value
+N =,,104,33,57,
+"Age, median (IQR)",,66 (58-73),63 (55-71),67 (59-76),0.061
+"Female sex, n (%)",,35 (34.7%),11 (34.4%),21 (38.2%),0.901
+"Underlying conditions, n (%)",,,,,
+"Underlying conditions, n (%)",Hematological malignancy,93 (89.4%),28 (84.8%),53 (93.0%),0.279
+"Underlying conditions, n (%)",Autoimmune,11 (10.6%),4 (12.1%),4 (7.0%),0.458
+"Underlying conditions, n (%)",Transplantation,4 (3.8%),3 (9.1%),1 (1.8%),0.138
+"Immunosuppressive treatment, n (%)",,,,,
+"Immunosuppressive treatment, n (%)",Anti-CD20,77 (74.0%),23 (69.7%),46 (80.7%),0.352
+"Immunosuppressive treatment, n (%)",CAR-T,3 (2.9%),0 (0.0%),3 (5.3%),0.296
+"Immunosuppressive treatment, n (%)",HSCT,3 (2.9%),2 (6.1%),1 (1.8%),0.552
+"Immunosuppressive treatment, n (%)",Mixed,2 (1.9%),1 (3.0%),1 (1.8%),1.000
+"Immunosuppressive treatment, n (%)",Other²,13 (12.5%),5 (15.2%),4 (7.0%),0.279
+"Immunosuppressive treatment, n (%)",None,6 (5.8%),2 (6.1%),2 (3.5%),0.622
+"Glucocorticoid use, n (%)",,47 (45.2%),13 (39.4%),29 (50.9%),0.405
+"SARS-CoV-2 vaccination, n (%)",,95 (91.3%),30 (90.9%),53 (93.0%),0.704
+"Mean Vaccination doses, n (range)",,3.3 (2-8),3.3 (2-6),3.3 (2-8),0.651
+"Thoracic CT changes, n (%)",,62 (59.6%),17 (51.5%),38 (66.7%),0.231
+"Treatment setting¹, n (%)",,,,,0.714
+"Treatment setting¹, n (%)",Hospital,55 (52.9%),17 (51.5%),33 (57.9%),
+"Treatment setting¹, n (%)",Outpatient,49 (47.1%),16 (48.5%),24 (42.1%),

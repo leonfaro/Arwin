@@ -98,7 +98,7 @@ def chi_or_fisher(a11, a12, a21, a22):
         exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
     except ValueError:
         return fisher_exact([[a11, a12], [a21, a22]])[1]
-    if (exp < 5).any():
+    if (exp < 5).any() or min(a11 + a12, a21 + a22) < 25:
         return fisher_exact([[a11, a12], [a21, a22]])[1]
     return chi2_contingency([[a11, a12], [a21, a22]])[1]
 

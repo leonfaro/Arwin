@@ -54,7 +54,7 @@ def build_table_a():
     t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
     def add_rate(row, st, sm, sc):
-        fill_rate(t_x, row, st, sm, sc, blank=st.sum() == 0)
+        fill_rate(t_x, row, st, sm, sc, blank=False)
 
     labels = [
         'Standard 5-day Paxlovid',

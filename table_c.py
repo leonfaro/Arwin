@@ -11,21 +11,11 @@ from data_preprocessing import (
 index = pd.MultiIndex.from_tuples(
     [
         ('Haematological malignancy, n (%)', ''),
-        ('Haematological malignancy, n (%)', 'Other\u00b9'),
-        ('Haematological malignancy, n (%)', 'NOS'),
-        ('Haematological malignancy, n (%)', 'DLBCL'),
-        ('Haematological malignancy, n (%)', 'ALL'),
-        ('Haematological malignancy, n (%)', 'CLL'),
-        ('Haematological malignancy, n (%)', 'AML'),
         ('Haematological malignancy, n (%)', 'FL'),
         ('Haematological malignancy, n (%)', 'NHL'),
-        ('Haematological malignancy, n (%)', 'MM'),
-        ('Haematological malignancy, n (%)', 'Mixed'),
+        ('Haematological malignancy, n (%)', 'Other\u00b9'),
         ('Autoimmune disease, n (%)', ''),
         ('Autoimmune disease, n (%)', 'RA'),
-        ('Autoimmune disease, n (%)', 'MS'),
-        ('Autoimmune disease, n (%)', 'SSc'),
-        ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
         ('Autoimmune disease, n (%)', 'Other\u00b2'),
         ('Transplantation, n (%)', ''),
         ('Transplantation, n (%)', 'LT'),
@@ -75,7 +65,7 @@ def build_table_c():
     table_c.loc[('Transplantation, n (%)', '')] = ''
     table_c.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
     table_c.loc[('Adverse events, n (%)', '')] = ''
-    labs = ['Other\u00b9', 'NOS', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
+    labs = ['FL', 'NHL', 'Other\u00b9']
     for lab in labs:
         db_lab = 'Other' if lab == 'Other\u00b9' else lab
         add_rate(
@@ -84,13 +74,7 @@ def build_table_c():
             MONO['heme'] == db_lab,
             COMBO['heme'] == db_lab,
         )
-    labs = [
-        'RA',
-        'MS',
-        'SSc',
-        'Colitis ulcerosa',
-        'Other\u00b2',
-    ]
+    labs = ['RA', 'Other\u00b2']
     for lab in labs:
         db_lab = 'Other' if lab == 'Other\u00b2' else lab
         add_rate(

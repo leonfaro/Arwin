@@ -14,7 +14,7 @@ def chi_or_fisher_test(a11, a12, a21, a22):
         ex = chi2_contingency([[a11, a12], [a21, a22]])[3]
     except ValueError:
         return "Fisher"
-    if (ex < 5).any():
+    if (ex < 5).any() or min(a11 + a12, a21 + a22) < 25:
         return "Fisher"
     return "Chi2 df=1"
 
@@ -148,30 +148,14 @@ def tests_table_b():
 
 def tests_table_c():
     info = {}
-    for lab in [
-        "Other",
-        "DLBCL",
-        "ALL",
-        "CLL",
-        "AML",
-        "FL",
-        "NHL",
-        "MM",
-        "Mixed",
-    ]:
+    for lab in ["FL", "NHL", "Other"]:
         info[("Haematological malignancy, n (%)", lab)] = chi_or_fisher_test(
             int((data_preprocessing.COMBO["heme"] == lab).sum()),
             len(data_preprocessing.COMBO) - int((data_preprocessing.COMBO["heme"] == lab).sum()),
             int((data_preprocessing.MONO["heme"] == lab).sum()),
             len(data_preprocessing.MONO) - int((data_preprocessing.MONO["heme"] == lab).sum()),
         )
-    for lab in [
-        "RA",
-        "MS",
-        "SSc",
-        "Colitis ulcerosa",
-        "Other",
-    ]:
+    for lab in ["RA", "Other"]:
         info[("Autoimmune disease, n (%)", lab)] = chi_or_fisher_test(
             int((data_preprocessing.COMBO["auto"] == lab).sum()),
             len(data_preprocessing.COMBO) - int((data_preprocessing.COMBO["auto"] == lab).sum()),
@@ -398,6 +382,10 @@ def main():
         f.write(section_no_test("Table C. Detailed Patient Characteristics", t3))
         f.write("   \n")
         f.write(section_no_test("Table D. Outcomes in all cohorts", t4, subrows=False))
+    t1.to_csv('table_a.csv')
+    t2.to_csv('table_b.csv')
+    t3.to_csv('table_c.csv')
+    t4.to_csv('table_d.csv')
     out_code = "code.md"
     clean(out_code)
     content = "# data_preprocessing.py\n" + open("data_preprocessing.py").read().rstrip() + "\n\n"

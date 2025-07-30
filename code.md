@@ -99,7 +99,7 @@ def chi_or_fisher(a11, a12, a21, a22):
         exp = chi2_contingency([[a11, a12], [a21, a22]])[3]
     except ValueError:
         return fisher_exact([[a11, a12], [a21, a22]])[1]
-    if (exp < 5).any():
+    if (exp < 5).any() or min(a11 + a12, a21 + a22) < 25:
         return fisher_exact([[a11, a12], [a21, a22]])[1]
     return chi2_contingency([[a11, a12], [a21, a22]])[1]
 
@@ -467,7 +467,7 @@ def build_table_a():
     t_x.loc[('N =', '')] = [len(TOTAL), len(MONO), len(COMBO), '']
 
     def add_rate(row, st, sm, sc):
-        fill_rate(t_x, row, st, sm, sc, blank=st.sum() == 0)
+        fill_rate(t_x, row, st, sm, sc, blank=False)
 
     labels = [
         'Standard 5-day Paxlovid',
@@ -678,6 +678,7 @@ index = pd.MultiIndex.from_tuples(
         ('Immunosuppressive treatment, n (%)', 'Anti-CD20'),
         ('Immunosuppressive treatment, n (%)', 'CAR-T'),
         ('Immunosuppressive treatment, n (%)', 'HSCT'),
+        ('Immunosuppressive treatment, n (%)', 'Mixed'),
         ('Immunosuppressive treatment, n (%)', 'Other\u00b2'),
         ('Immunosuppressive treatment, n (%)', 'None'),
         ('Glucocorticoid use, n (%)', ''),
@@ -750,6 +751,7 @@ def build_table_b():
         ('Anti-CD20', 'flag_cd20'),
         ('CAR-T', 'flag_cart'),
         ('HSCT', 'flag_hsct'),
+        ('Mixed', 'flag_immuno_mixed'),
         ('Other\u00b2', 'flag_immuno_other'),
         ('None', 'flag_immuno_none'),
     ]
@@ -841,21 +843,11 @@ __all__ = [
 index = pd.MultiIndex.from_tuples(
     [
         ('Haematological malignancy, n (%)', ''),
-        ('Haematological malignancy, n (%)', 'Other\u00b9'),
-        ('Haematological malignancy, n (%)', 'NOS'),
-        ('Haematological malignancy, n (%)', 'DLBCL'),
-        ('Haematological malignancy, n (%)', 'ALL'),
-        ('Haematological malignancy, n (%)', 'CLL'),
-        ('Haematological malignancy, n (%)', 'AML'),
         ('Haematological malignancy, n (%)', 'FL'),
         ('Haematological malignancy, n (%)', 'NHL'),
-        ('Haematological malignancy, n (%)', 'MM'),
-        ('Haematological malignancy, n (%)', 'Mixed'),
+        ('Haematological malignancy, n (%)', 'Other\u00b9'),
         ('Autoimmune disease, n (%)', ''),
         ('Autoimmune disease, n (%)', 'RA'),
-        ('Autoimmune disease, n (%)', 'MS'),
-        ('Autoimmune disease, n (%)', 'SSc'),
-        ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
         ('Autoimmune disease, n (%)', 'Other\u00b2'),
         ('Transplantation, n (%)', ''),
         ('Transplantation, n (%)', 'LT'),
@@ -905,7 +897,7 @@ def build_table_c():
     table_c.loc[('Transplantation, n (%)', '')] = ''
     table_c.loc[('SARS-CoV-2 genotype, n (%)', '')] = ''
     table_c.loc[('Adverse events, n (%)', '')] = ''
-    labs = ['Other\u00b9', 'NOS', 'DLBCL', 'ALL', 'CLL', 'AML', 'FL', 'NHL', 'MM', 'Mixed']
+    labs = ['FL', 'NHL', 'Other\u00b9']
     for lab in labs:
         db_lab = 'Other' if lab == 'Other\u00b9' else lab
         add_rate(
@@ -914,13 +906,7 @@ def build_table_c():
             MONO['heme'] == db_lab,
             COMBO['heme'] == db_lab,
         )
-    labs = [
-        'RA',
-        'MS',
-        'SSc',
-        'Colitis ulcerosa',
-        'Other\u00b2',
-    ]
+    labs = ['RA', 'Other\u00b2']
     for lab in labs:
         db_lab = 'Other' if lab == 'Other\u00b2' else lab
         add_rate(
