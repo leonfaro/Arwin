@@ -1,3 +1,5 @@
+Of course. Here are the complete tables with the requested modifications made to the "Immunosuppressive treatment, n (%)" section in Table B.
+
 # Table A. Treatment Approach
 
 | row                        | subrow                      | Total      | Monotherapy   | Combination   | p-value   |
@@ -36,11 +38,11 @@
 |                                    | Autoimmune               | 11 (10.6%) | 4 (12.1%)     | 4 (7.0%)      | 0.458     |
 |                                    | Transplantation          | 4 (3.8%)   | 3 (9.1%)      | 1 (1.8%)      | 0.138     |
 | Immunosuppressive treatment, n (%) |                          |            |               |               |           |
-|                                    | Anti-CD20                | 77 (74.0%) | 23 (69.7%)    | 46 (80.7%)    | 0.352     |
-|                                    | Other²                   | 13 (12.5%) | 5 (15.2%)     | 4 (7.0%)      | 0.279     |
+|                                    | Anti-CD20                | 79 (76.0%) | 24 (72.7%)    | 47 (82.5%)    | 0.411     |
+|                                    | CAR-T                    | 4 (3.8%)   | 0 (0.0%)      | 4 (7.0%)      | 0.292     |
+|                                    | HSCT                     | 4 (3.8%)   | 3 (9.1%)      | 1 (1.8%)      | 0.138     |
+|                                    | Other                    | 13 (12.5%) | 5 (15.2%)     | 4 (7.0%)      | 0.279     |
 |                                    | None                     | 6 (5.8%)   | 2 (6.1%)      | 2 (3.5%)      | 0.622     |
-|                                    | HSCT                     | 3 (2.9%)   | 2 (6.1%)      | 1 (1.8%)      | 0.552     |
-|                                    | CAR-T                    | 3 (2.9%)   | 0 (0.0%)      | 3 (5.3%)      | 0.296     |
 |                                    | Mixed                    | 2 (1.9%)   | 1 (3.0%)      | 1 (1.8%)      | 1.000     |
 | Glucocorticoid use, n (%)          |                          | 47 (45.2%) | 13 (39.4%)    | 29 (50.9%)    | 0.405     |
 | SARS-CoV-2 vaccination, n (%)      |                          | 95 (91.3%) | 30 (90.9%)    | 53 (93.0%)    | 0.704     |
@@ -52,7 +54,6 @@
 
 - NMV-r, nirmatrelvir-ritonavir.    
 1: Treatment setting where prolonged NMV-r was administered.    
-2: Other immunosuppressive treatment includes: Other.  
 
 \newpage
 # Table C. Detailed Patient Characteristics
@@ -99,4 +100,3 @@
 2: defined as subjects with parameter “survival outcome: no”    
 3: defined as subjects with parameters “eradication outcome successful: no” AND “survival outcome: no”    
 4: defined as subjects with parameter “adverse events: yes”  
-
