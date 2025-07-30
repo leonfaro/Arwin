@@ -10,10 +10,11 @@ spec.loader.exec_module(run_tables)
 
 
 def test_run_tables_output():
-    for f in ['code.md', 'tables.md']:
+    for f in ['code.md', 'tables_with_test.md', 'tables.md']:
         p = path / f
         if p.exists():
             p.unlink()
     run_tables.main()
     assert (path / 'code.md').exists()
+    assert (path / 'tables_with_test.md').exists()
     assert (path / 'tables.md').exists()

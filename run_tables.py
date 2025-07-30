@@ -384,14 +384,14 @@ def main():
     m3 = tests_table_c()
     m4 = tests_table_d()
     data_preprocessing.export_abbreviations_md('abbreviations.md')
-    out_tab = "tables.md"
+    out_tab = "tables_with_test.md"
     clean(out_tab)
     with open(out_tab, "w") as f:
         f.write(section("Table A. Treatment Approach", t1, m1))
         f.write(section("Table B. Demographics and Clinical Characteristics", t2, m2))
         f.write(section("Table C. Detailed Patient Characteristics", t3, m3))
         f.write(section("Table D. Outcomes in all cohorts", t4, m4, subrows=False))
-    out_nt = "table_no_test.md"
+    out_nt = "tables.md"
     clean(out_nt)
     with open(out_nt, "w") as f:
         f.write(section_no_test("Table A. Treatment Approach", t1))
