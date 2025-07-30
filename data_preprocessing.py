@@ -9,7 +9,18 @@ def normalize_text(x):
 
 
 NONE_SET = {"none", "nan", "n/a", "na", ""}
-OTHER_AV_NAMES = ["azd7442", "favipiravir", "entecavir"]
+OTHER_AV_NAMES = [
+    "azd7442",
+    "tix",
+    "cil",
+    "sot",
+    "cas",
+    "imd",
+    "beb",
+    "ens",
+    "favipiravir",
+    "entecavir",
+]
 HEME_SYNONYMES = {
     "non-hodgkin lymphoma": "NHL",
     "non hodgkin lymphoma": "NHL",
@@ -80,7 +91,15 @@ for _df in (TOTAL, MONO, COMBO):
     mask = pd.Series(False, index=_df.index)
     for name in OTHER_AV_NAMES:
         mask |= s_clean.str.contains(name.replace(' ', ''), na=False)
-    _df['flag_other'] = mask
+    det = mask
+    _df['flag_other'] = (
+        (~_df['flag_rdv'] & ~_df['flag_mpv'] & det & ~_df['flag_pax5d'])
+        | (~_df['flag_rdv'] & ~_df['flag_mpv'] & _df['flag_pax5d'] & det)
+        | (_df['flag_rdv'] & _df['flag_mpv'] & _df['flag_pax5d'] & det)
+    )
+    _df['flag_none'] = ~(
+        _df['flag_pax5d'] | _df['flag_rdv'] | _df['flag_mpv'] | _df['flag_other']
+    )
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
 
