@@ -400,11 +400,11 @@ def main():
         f.write(section_no_test("Table D. Outcomes in all cohorts", t4, subrows=False))
     out_code = "code.md"
     clean(out_code)
+    content = "# data_preprocessing.py\n" + open("data_preprocessing.py").read().rstrip() + "\n\n"
+    for name in ["table_a.py", "table_b.py", "table_c.py", "table_d.py"]:
+        content += f"# {name}\n" + code_without_imports(name) + "\n\n"
     with open(out_code, "w") as f:
-        f.write(open("data_preprocessing.py").read().rstrip() + "\n\n")
-        for name in ["table_a.py", "table_b.py", "table_c.py", "table_d.py"]:
-            f.write(code_without_imports(name))
-            f.write("\n\n")
+        f.write(content)
 
 
 if __name__ == "__main__":

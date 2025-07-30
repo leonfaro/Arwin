@@ -1,3 +1,4 @@
+# data_preprocessing.py
 import pandas as pd
 import numpy as np
 import re
@@ -426,6 +427,7 @@ if __name__ == '__main__':
     print(COMBO.shape)
     print(baseline_stats())
 
+# table_a.py
 def build_table_a():
     days_t, courses_t = parse_ext(TOTAL[COL_EXT])
     days_m, courses_m = parse_ext(MONO[COL_EXT])
@@ -657,6 +659,7 @@ if __name__ == '__main__':
         'when no subsequent antiviral therapy was administered.'
     )
 
+# table_b.py
 index = pd.MultiIndex.from_tuples(
     [
         ('N =', ''),
@@ -829,6 +832,7 @@ __all__ = [
     'add_mean_range',
 ]
 
+# table_c.py
 index = pd.MultiIndex.from_tuples(
     [
         ('Haematological malignancy, n (%)', ''),
@@ -972,6 +976,7 @@ if __name__ == '__main__':
     print('Table C. Detailed Patient Characteristics.')
     print(build_table_c().to_string())
 
+# table_d.py
 COL_ERAD = 'eradication outcome successful\n[yes / no]'
 COL_SURV = 'survival outcome\n[yes / no]'
 COL_AE_YN = 'any adverse events\n[yes / no]'
