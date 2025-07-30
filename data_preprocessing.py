@@ -8,8 +8,15 @@ def normalize_text(x):
     return str(x).lower().strip()
 
 
-NONE_SET = {"none", "nan", "n/a", "na", ""}
-OTHER_AV_NAMES = ["azd7442", "favipiravir", "entecavir"]
+NONE_SET = {"none", "nan", "n/a", "na", "", "0", "no antiviral", "no antiviral drug", "no antiviral drugs"}
+OTHER_AV_NAMES = [
+    "azd7442",
+    "favipiravir",
+    "entecavir",
+    "brincidofovir",
+    "zanamivir",
+    "ribavirin",
+]
 HEME_SYNONYMES = {
     "non-hodgkin lymphoma": "NHL",
     "non hodgkin lymphoma": "NHL",
@@ -74,13 +81,22 @@ for _df in (TOTAL, MONO, COMBO):
             _df.rename(columns={c: COL_EXT}, inplace=True)
     s = _df[COL_OTHER].map(normalize_text)
     s_clean = s.str.replace(r'\s+', '', regex=True)
-    _df['flag_pax5d'] = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
+    pax_num = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
+    _df['flag_pax5d'] = pax_num
     _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
     _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
-    mask = pd.Series(False, index=_df.index)
+    mask_names = pd.Series(False, index=_df.index)
     for name in OTHER_AV_NAMES:
-        mask |= s_clean.str.contains(name.replace(' ', ''), na=False)
-    _df['flag_other'] = mask
+        mask_names |= s_clean.str.contains(name.replace(' ', ''), na=False)
+    mask_regex = s.str.contains(
+        'tix|cilga|cas|imd|sot|beb|ens|ribavi|ivig|vibro|brinci|cidof|zanam|plasma|/|-',
+        regex=True,
+    )
+    base = ~s.isin(NONE_SET) & ~_df['flag_rdv'] & ~_df['flag_mpv'] & ~_df['flag_pax5d']
+    _df['flag_other'] = base & (mask_names | mask_regex)
+    _df['flag_none'] = ~(
+        _df[['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']].any(axis=1)
+    )
 DF_mono = MONO.copy()
 DF_comb = COMBO.copy()
 

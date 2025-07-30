@@ -4,10 +4,7 @@ from data_preprocessing import (
     MONO,
     COMBO,
     COL_EXT,
-    COL_OTHER,
     COL_THERAPY,
-    normalize_text,
-    NONE_SET,
     parse_ext,
     fmt_pct,
     fmt_p,
@@ -57,12 +54,12 @@ def build_table_a():
         fill_rate(t_x, row, st, sm, sc, blank=False)
 
     labels = [
-        'Standard 5-day Paxlovid',
         'Remdesivir',
         'Molnupiravir',
+        'Standard 5-day Paxlovid',
         'Other antivirals',
     ]
-    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    cols = ['flag_rdv', 'flag_mpv', 'flag_pax5d', 'flag_other']
     for lbl, col in zip(labels, cols):
         add_rate(
             ('First-line therapy\u00b9, n (%)', lbl),
@@ -72,9 +69,9 @@ def build_table_a():
         )
     add_rate(
         ('First-line therapy\u00b9, n (%)', 'None'),
-        TOTAL[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        MONO[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        COMBO[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        TOTAL['flag_none'],
+        MONO['flag_none'],
+        COMBO['flag_none'],
     )
     t_x.loc[('First-line therapy\u00b9, n (%)', '')] = ''
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
@@ -170,19 +167,19 @@ def build_table_a_raw():
             raw.at[row, 'p-value'] = p
 
     labels = [
-        'Standard 5-day Paxlovid',
         'Remdesivir',
         'Molnupiravir',
+        'Standard 5-day Paxlovid',
         'Other antivirals',
     ]
-    cols = ['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']
+    cols = ['flag_rdv', 'flag_mpv', 'flag_pax5d', 'flag_other']
     for lbl, col in zip(labels, cols):
         add(('First-line therapy\u00b9, n', lbl), TOTAL[col], MONO[col], COMBO[col])
     add(
         ('First-line therapy\u00b9, n', 'None'),
-        TOTAL[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        MONO[COL_OTHER].map(normalize_text).isin(NONE_SET),
-        COMBO[COL_OTHER].map(normalize_text).isin(NONE_SET),
+        TOTAL['flag_none'],
+        MONO['flag_none'],
+        COMBO['flag_none'],
     )
     com_flag_t = TOTAL[COL_THERAPY].str.startswith('c', na=False)
     mono_flag_t = TOTAL[COL_THERAPY].str.startswith('m', na=False)
