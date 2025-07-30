@@ -26,7 +26,7 @@ index = pd.MultiIndex.from_tuples(
         ('Autoimmune disease, n (%)', 'MS'),
         ('Autoimmune disease, n (%)', 'SSc'),
         ('Autoimmune disease, n (%)', 'Colitis ulcerosa'),
-        ('Autoimmune disease, n (%)', 'Other\u00b9'),
+        ('Autoimmune disease, n (%)', 'Other\u00b2'),
         ('Transplantation, n (%)', ''),
         ('Transplantation, n (%)', 'LT'),
         ('Transplantation, n (%)', 'KT'),
@@ -89,10 +89,10 @@ def build_table_c():
         'MS',
         'SSc',
         'Colitis ulcerosa',
-        'Other\u00b9',
+        'Other\u00b2',
     ]
     for lab in labs:
-        db_lab = 'Other' if lab == 'Other\u00b9' else lab
+        db_lab = 'Other' if lab == 'Other\u00b2' else lab
         add_rate(
             ('Autoimmune disease, n (%)', lab),
             TOTAL['auto'] == db_lab,
@@ -140,7 +140,8 @@ def build_table_c():
     for lab in ['None', 'Thrombocytopenia', 'Other']:
         add_rate(('Adverse events, n (%)', lab), TOTAL['adv'] == lab, MONO['adv'] == lab, COMBO['adv'] == lab)
     table_c.attrs['footnote'] = (
-        '1: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
+        '1: Other includes MCL, LPL, MALT lymphoma and similar entities.'
+        '\n2: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, '
         'NMDA-encephalitis, SSc, LT, KT, CU.'
     )
     return table_c

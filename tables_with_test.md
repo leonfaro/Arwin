@@ -68,7 +68,7 @@
 |                                                         | MM               | 4 (3.8%)    | 0 (0.0%)      | 0 (0.0%)      | 1.000     | Fisher         |
 |                                                         | AML              | 3 (2.9%)    | 2 (6.1%)      | 1 (1.8%)      | 0.552     | Fisher         |
 | Autoimmune disease, n (%)                               |                  |             |               |               |           |                |
-|                                                         | Other¹           | 7 (6.7%)    | 2 (6.1%)      | 3 (5.3%)      | 1.000     | Fisher         |
+|                                                         | Other²           | 7 (6.7%)    | 2 (6.1%)      | 3 (5.3%)      | 1.000     | Fisher         |
 |                                                         | RA               | 2 (1.9%)    | 2 (6.1%)      | 0 (0.0%)      | 0.132     | Fisher         |
 |                                                         | MS               | 2 (1.9%)    | 0 (0.0%)      | 1 (1.8%)      | 1.000     | Fisher         |
 |                                                         | SSc              | 0 (0.0%)    | 0 (0.0%)      | 0 (0.0%)      | 1.000     | Fisher         |
@@ -89,7 +89,8 @@
 |                                                         | Other            | 5 (4.8%)    | 1 (3.0%)      | 4 (7.0%)      | 0.648     | Fisher         |
 |                                                         | Thrombocytopenia | 1 (1.0%)    | 0 (0.0%)      | 1 (1.8%)      | 1.000     | Fisher         |
 
-1: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, NMDA-encephalitis, SSc, LT, KT, CU.
+1: Other includes MCL, LPL, MALT lymphoma and similar entities.
+2: Other includes ANCA-Vasculitis, CREST, MCD, MCTD, NMDA-encephalitis, SSc, LT, KT, CU.
 
 # Table D. Outcomes in all cohorts
 
