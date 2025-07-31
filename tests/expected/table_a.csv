@@ -4,8 +4,8 @@ N =,,104,33,57,
 "First-line therapy¹, n (%)",Remdesivir,36 (34.6%),13 (39.4%),21 (36.8%),0.988
 "First-line therapy¹, n (%)",Molnupiravir,14 (13.5%),5 (15.2%),9 (15.8%),1.000
 "First-line therapy¹, n (%)",Standard 5-day Paxlovid,31 (29.8%),5 (15.2%),25 (43.9%),0.011
-"First-line therapy¹, n (%)",Other antivirals,13 (12.5%),5 (15.2%),4 (7.0%),0.279
-"First-line therapy¹, n (%)",None,6 (5.8%),2 (6.1%),2 (3.5%),0.622
+"First-line therapy¹, n (%)",Other antivirals,14 (13.5%),4 (12.1%),10 (17.5%),0.702
+"First-line therapy¹, n (%)",None,44 (42.3%),16 (48.5%),17 (29.8%),0.123
 "Last line therapy², n (%)",,,,,<0.001
 "Last line therapy², n (%)",Combination therapy,63 (60.6%),0 (0.0%),57 (100.0%),
 "Last line therapy², n (%)",Monotherapy,41 (39.4%),33 (100.0%),0 (0.0%),

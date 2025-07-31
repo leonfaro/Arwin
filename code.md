@@ -89,12 +89,8 @@ for _df in (TOTAL, MONO, COMBO):
     mask_names = pd.Series(False, index=_df.index)
     for name in OTHER_AV_NAMES:
         mask_names |= s_clean.str.contains(name.replace(' ', ''), na=False)
-    mask_regex = s.str.contains(
-        'tix|cilga|cas|imd|sot|beb|ens|ribavi|ivig|vibro|brinci|cidof|zanam|plasma|/|-',
-        regex=True,
-    )
-    base = ~s.isin(NONE_SET) & ~_df['flag_rdv'] & ~_df['flag_mpv'] & ~_df['flag_pax5d']
-    _df['flag_other'] = base & (mask_names | mask_regex)
+    mask_regex = s.str.contains(r'^\s*(?:tix-cil|cas-imd)\b', regex=True)
+    _df['flag_other'] = ~s.isin(NONE_SET) & (mask_names | mask_regex)
     _df['flag_none'] = ~(
         _df[['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']].any(axis=1)
     )
