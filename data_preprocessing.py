@@ -244,9 +244,19 @@ def classify_immuno(x):
     s = normalize_text(x)
     if s in NONE_SET:
         return 'None'
-    has_cd20 = 'cd20' in s
-    has_car = 'car' in s
-    has_hsct = 'hsct' in s
+    cd20_pattern = (
+        r'\b(cd20|rituximab|ocrelizumab|obinutuzumab|ofatumumab|ublituximab)\b'
+    )
+    car_pattern = (
+        r'\b(car[-\s]?t|cart|tisa-cel|axi-cel|liso-cel|brexu-cel|chimeric\s+antigen\s+receptor)\b'
+    )
+    hsct_pattern = (
+        r'\b(hsct|stem\s+cell\s+transplant|stem\s+cell\s+transplantation|hematopoietic\s+stem\s+cell|'
+        r'bone\s+marrow(?:\s+transplant)?|bmt)\b'
+    )
+    has_cd20 = bool(re.search(cd20_pattern, s))
+    has_car = bool(re.search(car_pattern, s))
+    has_hsct = bool(re.search(hsct_pattern, s))
     if sum([has_cd20, has_car, has_hsct]) > 1:
         return 'Mixed'
     if has_cd20:
