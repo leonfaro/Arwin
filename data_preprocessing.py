@@ -16,6 +16,13 @@ OTHER_AV_NAMES = [
     "brincidofovir",
     "zanamivir",
     "ribavirin",
+    "sotrovimab",
+    "sot",
+    "bebtelovimab",
+    "beb",
+    "ivig",
+    "ensitrelvir",
+    "ens",
 ]
 HEME_SYNONYMES = {
     "non-hodgkin lymphoma": "NHL",
@@ -83,13 +90,16 @@ for _df in (TOTAL, MONO, COMBO):
     s_clean = s.str.replace(r'\s+', '', regex=True)
     pax_num = pd.to_numeric(_df[COL_NMV_STD], errors='coerce').fillna(0) > 0
     _df['flag_pax5d'] = pax_num
-    _df['flag_rdv'] = s.str.contains('rdv') | s.str.contains('remdesivir')
-    _df['flag_mpv'] = s.str.contains('mpv') | s.str.contains('molnupiravir')
+    mask_any = ~s.isin(NONE_SET)
+    _df['flag_rdv'] = mask_any & s.str.contains('rdv|remdesivir', na=False)
+    _df['flag_mpv'] = mask_any & s.str.contains('mpv|molnupiravir', na=False)
     mask_names = pd.Series(False, index=_df.index)
     for name in OTHER_AV_NAMES:
         mask_names |= s_clean.str.contains(name.replace(' ', ''), na=False)
-    mask_regex = s.str.contains(r'^\s*(?:tix-cil|cas-imd)\b', regex=True)
-    _df['flag_other'] = ~s.isin(NONE_SET) & (mask_names | mask_regex)
+    mask_regex = s.str.contains(r'(tix-cil|cas-imd)', na=False)
+    _df['flag_other'] = mask_any & (
+        mask_names | mask_regex | (~_df['flag_rdv'] & ~_df['flag_mpv'])
+    )
     _df['flag_none'] = ~(
         _df[['flag_pax5d', 'flag_rdv', 'flag_mpv', 'flag_other']].any(axis=1)
     )
