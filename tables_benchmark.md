@@ -1,5 +1,3 @@
-Of course. Here are the complete tables with the requested modifications made to the "Immunosuppressive treatment, n (%)" section in Table B.
-
 # Table A. Treatment Approach
 
 | row                        | subrow                      | Total      | Monotherapy   | Combination   | p-value   |
